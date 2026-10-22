@@ -61,11 +61,28 @@
               <h3>Video del showreel</h3>
               <p class="hint">Se ve grande en la sección Showreel y se abre con sonido al tocar play.</p>
               <label class="check"><input type="checkbox" id="sameVideo"> Usar el mismo video del inicio</label>
+              <p class="small">Si elegís otro video para el showreel, esta opción se desmarca sola.</p>
               <label for="srLabel">Texto de la etiqueta</label>
               <input id="srLabel" type="text" maxlength="80" placeholder="Historias que retienen">
               <button type="button" class="btn" data-pick="showreel">Cambiar video</button>
             </div>
           </article>
+        </div>
+      </section>
+
+      <section class="block">
+        <div class="block__head">
+          <h2>Contacto</h2>
+          <p>Se usa en la sección de contacto, en el botón "Escribime" y en el botón flotante de WhatsApp.</p>
+        </div>
+        <div class="contact-card">
+          <div class="contact-card__row">
+            <div><label for="cEmail">Mail</label><input id="cEmail" type="email" maxlength="120" autocomplete="off" placeholder="nombre@gmail.com"></div>
+            <div><label for="cPhone">Número de WhatsApp</label><input id="cPhone" type="text" maxlength="30" inputmode="tel" placeholder="+54 9 11 1234-5678"><p class="small">Con código de país. Se muestra tal cual lo escribas.</p></div>
+          </div>
+          <label for="cMsg">Mensaje que aparece al abrir WhatsApp</label>
+          <textarea id="cMsg" maxlength="300" placeholder="Hola Juan! Vi tu portfolio y quería consultarte por un proyecto."></textarea>
+          <a class="btn btn--ghost contact-card__test" id="cWaTest" target="_blank" rel="noopener">Probar cómo queda en WhatsApp ↗</a>
         </div>
       </section>
 

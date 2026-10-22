@@ -5,7 +5,7 @@ const BLOB_CLIENT = "https://esm.sh/@vercel/blob@2.8.0/client";
 
 let password = "";
 let storage = "local";
-let state = { hero: {}, showreel: {}, works: [] };
+let state = { hero: {}, showreel: {}, works: [], contact: {} };
 let dirty = false;
 let uploading = 0;
 const sessionUploads = new Set(); // archivos subidos en esta sesión (para limpiar los que no se usen)
@@ -94,10 +94,17 @@ async function loadContent() {
   state = {
     hero: { ...(d.hero || {}), ...(remote.hero?.video ? remote.hero : {}) },
     showreel: { ...(d.showreel || {}), ...(remote.showreel?.video ? remote.showreel : {}) },
-    works: Array.isArray(remote.works) && remote.works.length ? remote.works : structuredClone(d.works || [])
+    works: Array.isArray(remote.works) && remote.works.length ? remote.works : structuredClone(d.works || []),
+    contact: {
+      email: remote.contact?.email || d.email || "",
+      whatsapp: remote.contact?.whatsapp?.display || d.whatsapp?.display || "",
+      message: remote.contact?.message ?? d.whatsapp?.message ?? ""
+    }
   };
+  if (typeof state.showreel.linked !== "boolean") state.showreel.linked = state.hero.video === state.showreel.video;
   renderSlots();
   renderWorks();
+  renderContact();
   setDirty(false);
 }
 
@@ -107,19 +114,36 @@ function setSlotVideo(slotId, url) {
   if (v.getAttribute("src") !== src(url)) { v.src = src(url); v.play().catch(() => {}); }
 }
 function renderSlots() {
+  // si está vinculado, el showreel siempre usa el mismo video que el inicio
+  if (state.showreel.linked) state.showreel = { ...state.showreel, video: state.hero.video, poster: state.hero.poster };
   setSlotVideo("slotHero", state.hero.video);
   setSlotVideo("slotShowreel", state.showreel.video);
-  const same = state.hero.video && state.hero.video === state.showreel.video;
-  $("#sameVideo").checked = same;
-  $("#slotShowreel").classList.toggle("is-linked", same);
+  $("#sameVideo").checked = !!state.showreel.linked;
   $("#srLabel").value = state.showreel.label || "";
 }
 $("#srLabel").addEventListener("input", (e) => { state.showreel.label = e.target.value; setDirty(); });
 $("#sameVideo").addEventListener("change", (e) => {
-  if (e.target.checked) state.showreel = { ...state.showreel, video: state.hero.video, poster: state.hero.poster };
-  $("#slotShowreel").classList.toggle("is-linked", e.target.checked);
+  state.showreel.linked = e.target.checked;
   renderSlots();
   setDirty();
+  if (!e.target.checked) toast("Listo. Ahora tocá \"Cambiar video\" en el showreel para elegir otro.");
+});
+
+/* ---------- contacto ---------- */
+function renderContact() {
+  $("#cEmail").value = state.contact.email || "";
+  $("#cPhone").value = state.contact.whatsapp || "";
+  $("#cMsg").value = state.contact.message || "";
+  updateWaPreview();
+}
+function updateWaPreview() {
+  const digits = (state.contact.whatsapp || "").replace(/\D/g, "");
+  const link = $("#cWaTest");
+  link.href = digits ? `https://wa.me/${digits}?text=${encodeURIComponent(state.contact.message || "")}` : "#";
+  link.hidden = !digits;
+}
+[["cEmail", "email"], ["cPhone", "whatsapp"], ["cMsg", "message"]].forEach(([id, key]) => {
+  $("#" + id).addEventListener("input", (e) => { state.contact[key] = e.target.value; updateWaPreview(); setDirty(); });
 });
 
 /* ---------- elegir y subir archivos ---------- */
@@ -229,9 +253,8 @@ document.addEventListener("click", async (e) => {
   const card = btn.closest(".slot");
   try {
     const up = await uploadVideo(file, card);
-    const linked = which === "hero" && $("#sameVideo").checked;
     state[which] = { ...state[which], video: up.video, poster: up.poster };
-    if (linked) state.showreel = { ...state.showreel, video: up.video, poster: up.poster };
+    if (which === "showreel") state.showreel.linked = false; // eligió un video propio para el showreel
     renderSlots();
     setDirty();
     toast("Video subido. Tocá Publicar cambios para que se vea en el sitio.");
@@ -386,6 +409,8 @@ $("#publish").addEventListener("click", async () => {
   const btn = $("#publish");
   const missing = state.works.findIndex((w) => !w.title?.trim());
   if (missing >= 0) { toast(`Al trabajo #${missing + 1} le falta el título.`, true); return; }
+  if (state.contact.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.contact.email.trim())) { toast("El mail no parece válido. Revisalo en Contacto.", true); return; }
+  if (state.contact.whatsapp && state.contact.whatsapp.replace(/\D/g, "").length < 8) { toast("El número de WhatsApp parece incompleto. Incluí el código de país (+54 9…).", true); return; }
   btn.disabled = true; btn.textContent = "Publicando…";
   const used = new Set([state.hero.video, state.hero.poster, state.showreel.video, state.showreel.poster, ...state.works.flatMap((w) => [w.video, w.poster])]);
   const discard = [...sessionUploads].filter((u) => !used.has(u));

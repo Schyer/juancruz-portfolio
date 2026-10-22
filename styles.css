@@ -191,6 +191,9 @@ body.menu-open .wa-float,body.lb-open .wa-float{opacity:0;pointer-events:none}
 .contact__links{display:inline-grid;gap:10px;max-width:100%}
 .contact__row{display:grid;grid-template-columns:96px minmax(0,1fr) auto;align-items:center;gap:14px;border:1px solid var(--line);padding:10px 12px 10px 14px;transition:border-color .3s}
 .contact__row:hover{border-color:var(--blue)}
+.contact__links.flash .contact__row{animation:rowFlash 1.6s var(--ease)}
+.contact__links.flash .contact__row:nth-child(2){animation-delay:.15s}
+@keyframes rowFlash{0%,100%{border-color:var(--line);background:transparent}25%{border-color:var(--blue);background:var(--blue-soft)}}
 .contact__label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:var(--blue);color:#fff;padding:3px 7px;font-weight:600;justify-self:start}
 .contact__value{font-weight:600;font-size:17px;letter-spacing:-.01em;overflow-wrap:anywhere;transition:color .3s}
 .contact__value:hover{color:var(--blue)}

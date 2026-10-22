@@ -18,7 +18,15 @@ function clean(input) {
     out.showreel = {
       video: url(input.showreel.video),
       poster: url(input.showreel.poster),
-      label: str(input.showreel.label, 80)
+      label: str(input.showreel.label, 80),
+      linked: input.showreel.linked === true
+    };
+  }
+  if (input.contact) {
+    const email = str(input.contact.email, 120);
+    out.contact = {
+      email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "",
+      whatsapp: { display: str(input.contact.whatsapp, 30), message: str(input.contact.message, 300) }
     };
   }
   if (Array.isArray(input.works)) {

@@ -17,6 +17,13 @@
         if (remote.hero && remote.hero.video) S.hero = { ...S.hero, ...remote.hero };
         if (remote.showreel && remote.showreel.video) S.showreel = { ...S.showreel, ...remote.showreel };
         if (Array.isArray(remote.works) && remote.works.length) S.works = remote.works;
+        if (remote.contact) {
+          if (remote.contact.email) S.email = remote.contact.email;
+          const wa = remote.contact.whatsapp || {};
+          const digits = (wa.display || "").replace(/\D/g, "");
+          if (digits.length >= 8) S.whatsapp = { ...S.whatsapp, display: wa.display, number: digits };
+          if (typeof wa.message === "string") S.whatsapp = { ...S.whatsapp, message: wa.message };
+        }
       }
     }
   } catch (e) { /* sin backend: se usan los valores por defecto */ }
@@ -34,10 +41,20 @@
   $("#bio").textContent = S.bio;
   $("#available").textContent = S.available;
   $("#railName").textContent = S.name;
-  $("#railMail").href = `mailto:${S.email}`;
+  // "Escribime" lleva a la sección de contacto (mailto no anda si la compu no tiene un programa de mail configurado)
+  $("#railMail").href = "#contacto";
+  $("#railMail").addEventListener("click", (e) => {
+    e.preventDefault();
+    $("#contacto").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+    const links = $(".contact__links");
+    links.classList.remove("flash"); void links.offsetWidth; links.classList.add("flash");
+  });
   $("#footerName").textContent = `© ${new Date().getFullYear()} ${S.fullName} — ${S.roles.join(" & ")}`;
   $("#mailLink").textContent = S.email;
-  $("#mailLink").href = `mailto:${S.email}`;
+  // En compu abre Gmail en una pestaña nueva; en el celular abre la app de mail
+  const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(S.email)}&su=${encodeURIComponent("Consulta desde tu portfolio")}`;
+  if (isTouch) $("#mailLink").href = `mailto:${S.email}`;
+  else { $("#mailLink").href = gmail; $("#mailLink").target = "_blank"; $("#mailLink").rel = "noopener"; }
 
   // WhatsApp
   const waUrl = `https://wa.me/${S.whatsapp.number}?text=${encodeURIComponent(S.whatsapp.message)}`;
