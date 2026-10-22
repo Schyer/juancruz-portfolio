@@ -9,6 +9,8 @@ window.SITE = {
   fullName: "Juan Cruz",
   email: "juancruzz2027@gmail.com",
   whatsapp: { display: "+54 9 11 4063-9945", number: "5491140639945", message: "Hola Juan! Vi tu portfolio y quería consultarte por un proyecto." },
+  // Colores del sitio (también se cambian desde /admin)
+  theme: { primary: "#0404E2", deep: "#0303B5", light: "#4040FB" },
   roles: ["Editor de video", "Content manager"],
   headline: ["Contenido que se planifica,", "se edita y se mide."],
   bio: "Acompaño a marcas y creadores desde la idea hasta el análisis: armo calendarios de contenido, grabo, edito y mido cada publicación.",

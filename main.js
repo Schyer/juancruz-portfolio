@@ -24,6 +24,7 @@
           if (digits.length >= 8) S.whatsapp = { ...S.whatsapp, display: wa.display, number: digits };
           if (typeof wa.message === "string") S.whatsapp = { ...S.whatsapp, message: wa.message };
         }
+        if (remote.theme && /^#[0-9a-f]{6}$/i.test(remote.theme.primary || "")) S.theme = { ...S.theme, ...remote.theme };
       }
     }
   } catch (e) { /* sin backend: se usan los valores por defecto */ }
@@ -33,6 +34,26 @@
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isTouch = matchMedia("(hover: none)").matches;
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+
+  /* ---------------- COLORES (desde el panel) ---------------- */
+  const hexToRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const mix = (a, b, t) => "#" + hexToRgb(a).map((v, i) => Math.round(v + (hexToRgb(b)[i] - v) * t).toString(16).padStart(2, "0")).join("");
+  const THEME = {
+    primary: S.theme?.primary || "#0404E2",
+    deep: S.theme?.deep || "#0303B5",
+    light: S.theme?.light || "#4040FB"
+  };
+  THEME.soft = mix(THEME.primary, "#F3F3EF", 0.88);
+  {
+    const r = document.documentElement.style;
+    r.setProperty("--blue", THEME.primary);
+    r.setProperty("--blue-2", THEME.primary);
+    r.setProperty("--blue-deep", THEME.deep);
+    r.setProperty("--blue-light", THEME.light);
+    r.setProperty("--blue-soft", THEME.soft);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME.primary);
+    try { localStorage.setItem("jc-theme", JSON.stringify(THEME)); } catch (e) {}
+  }
   const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   /* ---------------- RENDER CONTENIDO ---------------- */
@@ -401,12 +422,12 @@
         if (tint > 0.01) {
           c.globalCompositeOperation = "lighten";
           c.globalAlpha = tint;
-          c.fillStyle = "#0404E2";
+          c.fillStyle = THEME.primary;
           c.fillRect(0, 0, W, H);
           c.globalAlpha = 1;
         }
       } else {
-        c.fillStyle = "#0404E2";
+        c.fillStyle = THEME.primary;
         c.fillRect(0, 0, W, H);
       }
       // 2) recorte con las letras (que se van formando)
@@ -447,7 +468,7 @@
     c.scale(dpr, dpr);
     const size = Math.max(26, Math.round(W / 36));
     const cols = Math.ceil(W / size), rows = Math.ceil(H / size);
-    const pal = ["#0404E2", "#0404E2", "#0303B5", "#4040FB", "#2222EE", "#8C8CFD", "#C6C6FE"];
+    const pal = [THEME.primary, THEME.primary, THEME.deep, THEME.light, mix(THEME.primary, THEME.light, 0.5), mix(THEME.light, "#FFFFFF", 0.45), mix(THEME.light, "#FFFFFF", 0.75)];
     const cells = [];
     for (let r = 0; r < rows; r++)
       for (let q = 0; q < cols; q++)
@@ -462,7 +483,7 @@
       for (const k of cells) {
         if (k.th < t) continue;
         // los píxeles cercanos a desaparecer se aclaran
-        c.fillStyle = k.th - t < 0.08 ? pal[5 + ((k.th * 100) | 0) % 2] : el < HOLD ? "#0404E2" : k.col;
+        c.fillStyle = k.th - t < 0.08 ? pal[5 + ((k.th * 100) | 0) % 2] : el < HOLD ? THEME.primary : k.col;
         c.fillRect(k.x, k.y, size + 0.5, size + 0.5);
       }
       if (!fired && t > 0.3) { fired = true; done(); }
@@ -593,7 +614,10 @@
     map.forEach((row, y) => [...row].forEach((ch, x) => ch === "#" && px.push({ x, y, at: Math.random() })));
     const link = document.querySelector('link[rel="icon"][type="image/svg+xml"]');
     if (!link) return;
-    const original = link.href;
+    // al terminar queda la "JC" con el color elegido en el panel
+    const original = "data:image/svg+xml," + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect width="16" height="16" rx="3" fill="${THEME.primary}"/><g fill="#fff">${px.map((p) => `<rect x="${p.x}" y="${p.y}" width="1.02" height="1.02"/>`).join("")}</g></svg>`
+    );
     const cv = document.createElement("canvas");
     cv.width = cv.height = 32;
     const c = cv.getContext("2d");
@@ -603,7 +627,7 @@
       step++;
       const t = step / STEPS;
       c.clearRect(0, 0, 32, 32);
-      c.fillStyle = "#0404E2";
+      c.fillStyle = THEME.primary;
       c.beginPath(); c.roundRect ? c.roundRect(0, 0, 32, 32, 6) : c.rect(0, 0, 32, 32); c.fill();
       c.fillStyle = "#fff";
       px.forEach((p) => p.at < t && c.fillRect(p.x * 2, p.y * 2, 2, 2));

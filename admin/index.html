@@ -72,6 +72,38 @@
 
       <section class="block">
         <div class="block__head">
+          <h2>Colores</h2>
+          <p>Cambian los acentos de todo el sitio: el nombre, títulos, botones, menú y pantalla de carga.</p>
+        </div>
+        <div class="colors">
+          <div class="colors__pickers">
+            <div class="picker">
+              <input type="color" id="colPrimary" aria-describedby="colPrimaryHint">
+              <div><label for="colPrimary">Principal</label><input type="text" class="hex" data-for="colPrimary" maxlength="7" aria-label="Código del color principal"><p class="small" id="colPrimaryHint">Nombre, títulos, links y botones.</p></div>
+            </div>
+            <div class="picker">
+              <input type="color" id="colDeep">
+              <div><label for="colDeep">Oscuro</label><input type="text" class="hex" data-for="colDeep" maxlength="7" aria-label="Código del color oscuro"><p class="small">Inicio del degradé del menú y detalles.</p></div>
+            </div>
+            <div class="picker">
+              <input type="color" id="colLight">
+              <div><label for="colLight">Claro</label><input type="text" class="hex" data-for="colLight" maxlength="7" aria-label="Código del color claro"><p class="small">Final del degradé y detalles.</p></div>
+            </div>
+            <p class="colors__warn" id="colWarn" hidden>Este color principal se lee poco sobre el fondo claro. Probá uno más oscuro o más intenso.</p>
+            <button type="button" class="btn btn--ghost" id="colReset">Volver a los azules originales</button>
+          </div>
+          <div class="preview" id="colPreview" aria-label="Vista previa de los colores">
+            <span class="preview__label">Vista previa</span>
+            <p class="preview__title">Contenido que se planifica,<br><span>se edita y se mide.</span></p>
+            <p class="preview__name">juan cruz</p>
+            <div class="preview__row"><span class="preview__chip">Edición</span><span class="preview__chip">Reels</span><span class="preview__btn">Ver trabajos</span></div>
+            <div class="preview__menu">Menú</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="block">
+        <div class="block__head">
           <h2>Contacto</h2>
           <p>Se usa en la sección de contacto, en el botón "Escribime" y en el botón flotante de WhatsApp.</p>
         </div>

@@ -22,6 +22,11 @@ function clean(input) {
       linked: input.showreel.linked === true
     };
   }
+  if (input.theme) {
+    const hex = (v) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v.toUpperCase() : null);
+    const t = { primary: hex(input.theme.primary), deep: hex(input.theme.deep), light: hex(input.theme.light) };
+    if (t.primary && t.deep && t.light) out.theme = t;
+  }
   if (input.contact) {
     const email = str(input.contact.email, 120);
     out.contact = {

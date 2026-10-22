@@ -13,6 +13,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Aplica los colores elegidos en el panel antes de dibujar la página (evita un parpadeo del azul original)
+    try {
+      var t = JSON.parse(localStorage.getItem("jc-theme") || "null");
+      if (t && t.primary) {
+        var r = document.documentElement.style;
+        r.setProperty("--blue", t.primary); r.setProperty("--blue-2", t.primary);
+        r.setProperty("--blue-deep", t.deep); r.setProperty("--blue-light", t.light);
+        if (t.soft) r.setProperty("--blue-soft", t.soft);
+      }
+    } catch (e) {}
+  </script>
 </head>
 <body class="is-loading">
 

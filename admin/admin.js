@@ -5,7 +5,8 @@ const BLOB_CLIENT = "https://esm.sh/@vercel/blob@2.8.0/client";
 
 let password = "";
 let storage = "local";
-let state = { hero: {}, showreel: {}, works: [], contact: {} };
+let state = { hero: {}, showreel: {}, works: [], contact: {}, theme: {} };
+const DEFAULT_THEME = { primary: "#0404E2", deep: "#0303B5", light: "#4040FB" };
 let dirty = false;
 let uploading = 0;
 const sessionUploads = new Set(); // archivos subidos en esta sesión (para limpiar los que no se usen)
@@ -99,12 +100,14 @@ async function loadContent() {
       email: remote.contact?.email || d.email || "",
       whatsapp: remote.contact?.whatsapp?.display || d.whatsapp?.display || "",
       message: remote.contact?.message ?? d.whatsapp?.message ?? ""
-    }
+    },
+    theme: { ...DEFAULT_THEME, ...(d.theme || {}), ...(remote.theme || {}) }
   };
   if (typeof state.showreel.linked !== "boolean") state.showreel.linked = state.hero.video === state.showreel.video;
   renderSlots();
   renderWorks();
   renderContact();
+  renderColors();
   setDirty(false);
 }
 
@@ -128,6 +131,38 @@ $("#sameVideo").addEventListener("change", (e) => {
   setDirty();
   if (!e.target.checked) toast("Listo. Ahora tocá \"Cambiar video\" en el showreel para elegir otro.");
 });
+
+/* ---------- colores ---------- */
+const COLOR_KEYS = { colPrimary: "primary", colDeep: "deep", colLight: "light" };
+const isHex = (v) => /^#[0-9a-f]{6}$/i.test(v);
+function luminance(hex) {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+function renderColors() {
+  Object.entries(COLOR_KEYS).forEach(([id, key]) => {
+    $("#" + id).value = state.theme[key].toLowerCase();
+    $(`.hex[data-for=${id}]`).value = state.theme[key].toUpperCase();
+  });
+  const pv = $("#colPreview").style;
+  pv.setProperty("--p", state.theme.primary);
+  pv.setProperty("--d", state.theme.deep);
+  pv.setProperty("--l", state.theme.light);
+  // contraste del principal contra el fondo del sitio (#F3F3EF)
+  const ratio = (luminance("#F3F3EF") + 0.05) / (luminance(state.theme.primary) + 0.05);
+  $("#colWarn").hidden = ratio >= 3;
+}
+Object.entries(COLOR_KEYS).forEach(([id, key]) => {
+  $("#" + id).addEventListener("input", (e) => { state.theme[key] = e.target.value.toUpperCase(); renderColors(); setDirty(); });
+  const hex = $(`.hex[data-for=${id}]`);
+  hex.addEventListener("input", () => {
+    let v = hex.value.trim();
+    if (v && v[0] !== "#") v = "#" + v;
+    if (isHex(v)) { state.theme[key] = v.toUpperCase(); renderColors(); setDirty(); }
+  });
+  hex.addEventListener("blur", () => { hex.value = state.theme[key].toUpperCase(); });
+});
+$("#colReset").addEventListener("click", () => { state.theme = { ...DEFAULT_THEME }; renderColors(); setDirty(); });
 
 /* ---------- contacto ---------- */
 function renderContact() {
