@@ -108,6 +108,7 @@ async function loadContent() {
   renderWorks();
   renderContact();
   renderColors();
+  refreshLogo();
   setDirty(false);
 }
 
@@ -133,6 +134,13 @@ $("#sameVideo").addEventListener("change", (e) => {
 });
 
 /* ---------- colores ---------- */
+// Recarga la "JC" del panel con el color guardado (evita que el navegador muestre una vieja)
+function refreshLogo() {
+  const v = (state.theme.primary || "").slice(1);
+  document.querySelectorAll('img[src^="/api/favicon"]').forEach((i) => (i.src = `/api/favicon?v=${v}`));
+  const l = document.querySelector('link[rel="icon"]');
+  if (l) l.href = `/api/favicon?v=${v}`;
+}
 const COLOR_KEYS = { colPrimary: "primary", colDeep: "deep", colLight: "light" };
 const isHex = (v) => /^#[0-9a-f]{6}$/i.test(v);
 function luminance(hex) {
@@ -453,6 +461,7 @@ $("#publish").addEventListener("click", async () => {
     await api("/api/save", { method: "POST", body: JSON.stringify({ ...state, discard }) });
     discard.forEach((u) => sessionUploads.delete(u));
     setDirty(false);
+    refreshLogo();
     toast("¡Listo! Los cambios ya se ven en el sitio.");
   } catch (err) {
     if (err.status === 401) { toast("Tu sesión venció. Volvé a entrar.", true); ss.set("jc-pw", ""); setTimeout(() => location.reload(), 1500); }

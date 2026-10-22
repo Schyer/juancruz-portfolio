@@ -52,6 +52,13 @@
     r.setProperty("--blue-light", THEME.light);
     r.setProperty("--blue-soft", THEME.soft);
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME.primary);
+    // el color va en la dirección del favicon para que el navegador no muestre uno viejo guardado
+    const v = THEME.primary.slice(1);
+    document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]').forEach((l) => {
+      const u = new URL(l.getAttribute("href"), location.href);
+      u.searchParams.set("v", v);
+      l.href = u.pathname + u.search;
+    });
     try { localStorage.setItem("jc-theme", JSON.stringify(THEME)); } catch (e) {}
   }
   const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
