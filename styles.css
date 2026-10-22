@@ -176,11 +176,7 @@ body.menu-open .menu a{opacity:1;transform:none}
 .step__body p{padding:0 0 28px 90px;max-width:640px;color:var(--muted);font-size:15px}
 
 /* ---------- CONTACT ---------- */
-/* Contacto y pie en una banda azul profunda: los tokens se redefinen adentro */
-.contact,.footer{--ink:#FFFFFF;--muted:rgba(255,255,255,.72);--line:rgba(255,255,255,.2);--blue:#A9A9FF;--blue-2:#8F8FFF;--blue-soft:rgba(255,255,255,.12);--on-accent:#0303B5;
-  background:linear-gradient(180deg,var(--blue-deep) 0%,#0303B5 60%,#02028F 100%);color:#fff}
-.contact{padding-top:14vh;padding-bottom:12vh;display:grid;grid-template-columns:auto 1fr;gap:6vw;align-items:center}
-.contact .h2{color:#fff}
+.contact{padding-bottom:12vh;display:grid;grid-template-columns:auto 1fr;gap:6vw;align-items:center}
 .ascii--big{font-size:11px;line-height:.95;letter-spacing:1px}
 .contact__text{color:var(--muted);margin:16px 0 30px;max-width:420px}
 
@@ -205,13 +201,13 @@ body.menu-open .wa-float,body.lb-open .wa-float{opacity:0;pointer-events:none}
 .contact__links.flash .contact__row{animation:rowFlash 1.6s var(--ease)}
 .contact__links.flash .contact__row:nth-child(2){animation-delay:.15s}
 @keyframes rowFlash{0%,100%{border-color:var(--line);background:transparent}25%{border-color:var(--blue);background:var(--blue-soft)}}
-.contact__label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:var(--blue-light);color:#fff!important;color:var(--on-accent);padding:3px 7px;font-weight:600;justify-self:start}
+.contact__label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:var(--blue);color:var(--on-accent);padding:3px 7px;font-weight:600;justify-self:start}
 .contact__value{font-weight:600;font-size:17px;letter-spacing:-.01em;overflow-wrap:anywhere;transition:color .3s}
 .contact__value:hover{color:var(--blue)}
 .contact__action{font-family:var(--mono);font-size:12px;color:var(--muted);padding:6px 8px;white-space:nowrap;transition:color .3s,background .3s}
 .contact__action:hover{color:var(--on-accent);background:var(--ink)}
 
-.footer{display:flex;justify-content:space-between;padding-top:28px;padding-bottom:28px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);background:#02028F}
+.footer{display:flex;justify-content:space-between;padding-top:28px;padding-bottom:28px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 .footer a:hover{color:var(--blue)}
 .footer{padding-right:calc(var(--rail) + 56px + 84px)}
 
