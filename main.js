@@ -401,12 +401,12 @@
         if (tint > 0.01) {
           c.globalCompositeOperation = "lighten";
           c.globalAlpha = tint;
-          c.fillStyle = "#1F2BFF";
+          c.fillStyle = "#D96C00";
           c.fillRect(0, 0, W, H);
           c.globalAlpha = 1;
         }
       } else {
-        c.fillStyle = "#1F2BFF";
+        c.fillStyle = "#D96C00";
         c.fillRect(0, 0, W, H);
       }
       // 2) recorte con las letras (que se van formando)
@@ -447,7 +447,7 @@
     c.scale(dpr, dpr);
     const size = Math.max(26, Math.round(W / 36));
     const cols = Math.ceil(W / size), rows = Math.ceil(H / size);
-    const pal = ["#1F2BFF", "#1F2BFF", "#0A14D6", "#3D48FF", "#5C66FF", "#8C93FF", "#C3C7FF"];
+    const pal = ["#D96C00", "#D96C00", "#9C3F00", "#B85500", "#E8893A", "#F2B27A", "#FADBC2"];
     const cells = [];
     for (let r = 0; r < rows; r++)
       for (let q = 0; q < cols; q++)
@@ -462,7 +462,7 @@
       for (const k of cells) {
         if (k.th < t) continue;
         // los píxeles cercanos a desaparecer se aclaran
-        c.fillStyle = k.th - t < 0.08 ? pal[5 + ((k.th * 100) | 0) % 2] : el < HOLD ? "#1F2BFF" : k.col;
+        c.fillStyle = k.th - t < 0.08 ? pal[5 + ((k.th * 100) | 0) % 2] : el < HOLD ? "#D96C00" : k.col;
         c.fillRect(k.x, k.y, size + 0.5, size + 0.5);
       }
       if (!fired && t > 0.3) { fired = true; done(); }
@@ -603,9 +603,9 @@
       step++;
       const t = step / STEPS;
       c.clearRect(0, 0, 32, 32);
-      c.fillStyle = "#1F2BFF";
+      c.fillStyle = "#9C3F00";
       c.beginPath(); c.roundRect ? c.roundRect(0, 0, 32, 32, 6) : c.rect(0, 0, 32, 32); c.fill();
-      c.fillStyle = "#fff";
+      c.fillStyle = "#FFF1E6";
       px.forEach((p) => p.at < t && c.fillRect(p.x * 2, p.y * 2, 2, 2));
       link.href = cv.toDataURL("image/png");
       if (step >= STEPS) { clearInterval(id); link.href = original; }
