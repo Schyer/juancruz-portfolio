@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Juan Cruz - Portfolio</title>
+  <meta name="description" content="Juan Cruz: calendarios de contenido, grabación, postproducción y análisis de métricas.">
+  <meta name="theme-color" content="#1F2BFF">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="is-loading">
+
+  <!-- Loader de píxeles -->
+  <canvas id="loader" aria-hidden="true"></canvas>
+
+  <!-- Barras laterales fijas -->
+  <aside class="rail rail--left">
+    <a class="rail__link" id="railMail" href="#contacto"><span data-scramble-hover>Escribime</span></a>
+  </aside>
+  <aside class="rail rail--right">
+    <button class="menu-btn" id="menuBtn" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span></button>
+    <span class="rail__brand">© <span id="railName">juan cruz</span></span>
+  </aside>
+
+  <!-- Barra superior (mobile) -->
+  <header class="topbar">
+    <span class="topbar__brand">© juan cruz</span>
+    <button class="menu-btn menu-btn--top" id="menuBtnTop" aria-label="Abrir menú"><span></span><span></span></button>
+  </header>
+
+  <!-- Menú -->
+  <nav class="menu" id="menu" aria-hidden="true">
+    <ul>
+      <li><a href="#servicios" data-scramble-hover>Servicios</a></li>
+      <li><a href="#showreel" data-scramble-hover>Showreel</a></li>
+      <li><a href="#trabajos" data-scramble-hover>Trabajos</a></li>
+      <li><a href="#proceso" data-scramble-hover>Proceso</a></li>
+      <li><a href="#contacto" data-scramble-hover>Contacto</a></li>
+    </ul>
+  </nav>
+
+  <main id="app">
+    <!-- HERO -->
+    <section class="hero wrap" id="inicio">
+      <p class="hero__roles" id="roles"></p>
+      <h2 class="hero__headline" id="headline"></h2>
+
+      <div class="hero__name" id="heroName">
+        <video class="hero__video" autoplay muted loop playsinline preload="auto"></video>
+        <canvas class="hero__canvas" id="nameCanvas" aria-hidden="true"></canvas>
+        <h1 class="sr-only" id="nameMask">Juan Cruz</h1>
+      </div>
+
+      <div class="hero__foot">
+        <div>
+          <p class="hero__bio" id="bio"></p>
+          <a class="link-accent" href="#trabajos"><span data-scramble-hover>Ver trabajos</span> ↓</a>
+        </div>
+        <p class="hero__status"><i class="dot"></i><span id="available"></span></p>
+      </div>
+    </section>
+
+    <!-- STATEMENT -->
+    <section class="statement wrap">
+      <p class="reveal-words" id="statement"></p>
+    </section>
+
+    <!-- SERVICIOS -->
+    <section class="services wrap" id="servicios">
+      <div class="services__list" id="services"></div>
+    </section>
+
+    <!-- MARQUEE -->
+    <div class="marquee" aria-hidden="true"><div class="marquee__track" id="marquee"></div></div>
+
+    <!-- SHOWREEL -->
+    <section class="showreel wrap" id="showreel">
+      <div class="showreel__frame" id="showreelFrame">
+        <video id="showreelVideo" muted loop playsinline preload="metadata"></video>
+        <div class="showreel__year"><b>20</b><b>26</b><small>SHOWREEL</small></div>
+        <button class="play" id="showreelPlay" aria-label="Reproducir showreel con sonido">
+          <svg viewBox="0 0 7 9" shape-rendering="crispEdges"><path d="M0 0h2v1h1v1h1v1h1v1h1v1h-1v1h-1v1h-1v1h-1v1h-2z"/></svg>
+        </button>
+        <span class="showreel__label" id="showreelLabel"></span>
+      </div>
+    </section>
+
+    <!-- TRABAJOS -->
+    <section class="works wrap" id="trabajos">
+      <div class="sec-head">
+        <h2 class="h2" data-scramble>Trabajos recientes.</h2>
+        <span class="sec-head__meta" data-scramble>(2025 — 2026)</span>
+      </div>
+      <div class="works__grid" id="works"></div>
+    </section>
+
+    <!-- PROCESO -->
+    <section class="process wrap" id="proceso">
+      <h2 class="h2 reveal-words" id="processTitle"></h2>
+      <div class="process__list" id="process"></div>
+    </section>
+
+    <!-- CONTACTO -->
+    <section class="contact wrap" id="contacto">
+      <pre class="ascii ascii--big" id="asciiMono" aria-hidden="true"></pre>
+      <div class="contact__body">
+        <h2 class="h2" data-scramble>¿Hacemos algo juntos?</h2>
+        <p class="contact__text">Contame de tu marca o proyecto y armamos un plan de contenido a medida.</p>
+        <div class="contact__links">
+          <div class="contact__row">
+            <span class="contact__label">Email</span>
+            <a id="mailLink" class="contact__value"></a>
+            <button class="contact__action" id="copyBtn" type="button">Copiar</button>
+          </div>
+          <div class="contact__row">
+            <span class="contact__label">WhatsApp</span>
+            <a id="waContact" class="contact__value" target="_blank" rel="noopener"><span id="waNumber"></span></a>
+            <a id="waOpen" class="contact__action" target="_blank" rel="noopener">Abrir ↗</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer wrap">
+      <span id="footerName"></span>
+      <a href="#inicio" data-scramble-hover>Volver arriba ↑</a>
+    </footer>
+  </main>
+
+  <!-- Botón flotante de WhatsApp -->
+  <a class="wa-float" id="waFloat" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path class="wa-bubble" d="M16 3C8.8 3 3 8.6 3 15.6c0 2.5.8 4.9 2.1 6.9L3.6 29l6.8-1.7c1.7.9 3.6 1.3 5.6 1.3 7.2 0 13-5.6 13-12.6S23.2 3 16 3z"/><path class="wa-phone" transform="translate(8.2 8) scale(.66)" d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+    <span class="wa-float__label">Escribime por WhatsApp</span>
+  </a>
+
+  <!-- Lightbox de video -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <button class="lightbox__close" id="lbClose" aria-label="Cerrar">Cerrar ✕</button>
+    <video id="lbVideo" controls playsinline></video>
+  </div>
+
+  <script src="content.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

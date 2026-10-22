@@ -1,0 +1,627 @@
+/* =========================================================
+   Juan Cruz — interacciones y animaciones
+   ========================================================= */
+(async () => {
+  const S = window.SITE;
+
+  /* ---------------- CONTENIDO CARGADO DESDE EL PANEL ---------------- */
+  // Lo que Juan sube en /admin vive en el backend; si no responde, quedan los valores de content.js
+  try {
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 3000);
+    const r = await fetch("/api/content", { cache: "no-store", signal: ctl.signal });
+    clearTimeout(to);
+    if (r.ok) {
+      const remote = await r.json();
+      if (remote && typeof remote === "object") {
+        if (remote.hero && remote.hero.video) S.hero = { ...S.hero, ...remote.hero };
+        if (remote.showreel && remote.showreel.video) S.showreel = { ...S.showreel, ...remote.showreel };
+        if (Array.isArray(remote.works) && remote.works.length) S.works = remote.works;
+      }
+    }
+  } catch (e) { /* sin backend: se usan los valores por defecto */ }
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const isTouch = matchMedia("(hover: none)").matches;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  /* ---------------- RENDER CONTENIDO ---------------- */
+  $("#roles").innerHTML = S.roles.map(esc).join(" <i>|</i> ");
+  $("#headline").innerHTML = S.headline.map((l) => `<span>${esc(l)}</span>`).join("");
+  $("#bio").textContent = S.bio;
+  $("#available").textContent = S.available;
+  $("#railName").textContent = S.name;
+  $("#railMail").href = `mailto:${S.email}`;
+  $("#footerName").textContent = `© ${new Date().getFullYear()} ${S.fullName} — ${S.roles.join(" & ")}`;
+  $("#mailLink").textContent = S.email;
+  $("#mailLink").href = `mailto:${S.email}`;
+
+  // WhatsApp
+  const waUrl = `https://wa.me/${S.whatsapp.number}?text=${encodeURIComponent(S.whatsapp.message)}`;
+  $("#waFloat").href = waUrl;
+  $("#waContact").href = waUrl;
+  $("#waOpen").href = waUrl;
+  $("#waNumber").textContent = S.whatsapp.display;
+
+  // Video del hero (el mismo del showreel, salvo que se cambie desde el panel)
+  const heroVid = $(".hero__video");
+  heroVid.src = S.hero.video;
+  if (S.hero.poster) heroVid.poster = S.hero.poster;
+
+  $("#nameMask").textContent = S.fullName;
+
+  // Frase con palabras que aparecen al scrollear
+  const splitWords = (txt, cls = "") =>
+    txt.split(/\s+/).map((w) => `<span class="wd ${cls}">${esc(w)}</span>`).join(" ");
+  $("#statement").innerHTML = splitWords(S.statement.strong) + " " + splitWords(S.statement.soft, "soft");
+  $("#processTitle").innerHTML = splitWords(S.processTitle.strong) + " " + splitWords(S.processTitle.soft, "soft");
+
+  // Servicios
+  $("#services").innerHTML = S.services
+    .map(
+      (s, i) => `
+    <article class="svc">
+      <div>
+        <span class="svc__num">0${i + 1}</span>
+        <h3 class="svc__title" data-scramble>${esc(s.title)}</h3>
+        <p class="svc__text">${esc(s.text)}</p>
+      </div>
+      <div class="svc__tags">${s.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
+      <pre class="ascii" data-icon="${s.icon}" aria-hidden="true"></pre>
+    </article>`
+    )
+    .join("");
+
+  // Marquee (duplicado para loop infinito)
+  const mq = S.marquee.map((m) => `<span>${esc(m)}</span>`).join("");
+  $("#marquee").innerHTML = mq + mq;
+
+  // Showreel
+  const srv = $("#showreelVideo");
+  srv.src = S.showreel.video;
+  if (S.showreel.poster) srv.poster = S.showreel.poster;
+  $("#showreelLabel").textContent = S.showreel.label;
+
+  // Trabajos
+  $("#works").innerHTML = S.works
+    .map(
+      (w, i) => `
+    <article class="work" data-video="${esc(w.video)}">
+      <div class="work__media" style="aspect-ratio:${w.ratio === "9/16" ? "4/5" : w.ratio || "16/9"}">
+        ${w.poster ? `<img src="${esc(w.poster)}" alt="${esc(w.title)}" loading="lazy">` : ""}
+        <video src="${esc(w.video)}${w.poster ? "" : "#t=0.5"}" muted loop playsinline preload="${w.poster ? "none" : "metadata"}" ${w.poster ? "" : 'style="opacity:1"'}></video>
+        <span class="work__cursor">Ver video ↗</span>
+      </div>
+      <div class="work__info">
+        <div>
+          <h3 class="work__title" data-scramble>${esc(w.title)}</h3>
+          <p class="work__text">${esc(w.text || "")}</p>
+          <div class="work__tags">${(w.tags || []).map((t) => `<span>${esc(t)}</span>`).join("")}</div>
+        </div>
+        <span class="work__year">${esc(w.year || "")}</span>
+      </div>
+    </article>`
+    )
+    .join("");
+
+  // Proceso
+  $("#process").innerHTML = S.process
+    .map(
+      (p) => `
+    <div class="step">
+      <button class="step__head" aria-expanded="false">
+        <span class="step__num">${esc(p.step)}</span>
+        <span class="step__title">${esc(p.title)}</span>
+        <span class="step__meta">${esc(p.meta)}</span>
+        <span class="step__plus"></span>
+      </button>
+      <div class="step__body"><div><p>${esc(p.text)}</p></div></div>
+      <span class="step__line"></span>
+    </div>`
+    )
+    .join("");
+
+  /* ---------------- SCRAMBLE DE TEXTO ---------------- */
+  const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz#%&*+=<>/?";
+  function scramble(el, dur = 900) {
+    if (reduce) return;
+    const final = el.dataset.final ?? el.textContent;
+    el.dataset.final = final;
+    const chars = [...final];
+    const at = chars.map((_, i) => (i / chars.length) * 0.65 + Math.random() * 0.35);
+    const t0 = performance.now();
+    cancelAnimationFrame(el._raf);
+    const tick = (now) => {
+      const p = clamp((now - t0) / dur);
+      let html = "";
+      for (let i = 0; i < chars.length; i++) {
+        const c = chars[i];
+        if (c === " " || p >= at[i]) html += esc(c);
+        else if (p > at[i] - 0.35) html += `<span style="color:var(--blue);opacity:.7">${GLYPHS[(Math.random() * GLYPHS.length) | 0]}</span>`;
+        else html += `<span style="opacity:0">${esc(c)}</span>`;
+      }
+      el.innerHTML = html;
+      if (p < 1) el._raf = requestAnimationFrame(tick);
+      else el.textContent = final;
+    };
+    el._raf = requestAnimationFrame(tick);
+  }
+
+  /* ---------------- ASCII: FORMAS QUE SE FORMAN ---------------- */
+  // Mide el tamaño real de un carácter para que las formas no se deformen
+  function cellSize(pre) {
+    const probe = document.createElement("span");
+    probe.textContent = "%%%%%%%%%%";
+    pre.appendChild(probe);
+    const r = probe.getBoundingClientRect();
+    pre.removeChild(probe);
+    return { cw: r.width / 10 || 5, ch: r.height || 8 };
+  }
+
+  const ICONS = {
+    calendar(c, W, H) {
+      const lw = W * 0.075;
+      c.lineWidth = lw;
+      c.strokeRect(W * 0.12, H * 0.2, W * 0.76, H * 0.68);
+      c.fillRect(W * 0.12, H * 0.2, W * 0.76, H * 0.16);
+      c.fillRect(W * 0.28, H * 0.08, lw, H * 0.18);
+      c.fillRect(W * 0.66, H * 0.08, lw, H * 0.18);
+      for (let r = 0; r < 2; r++)
+        for (let k = 0; k < 3; k++) {
+          const x = W * (0.24 + k * 0.2), y = H * (0.48 + r * 0.2);
+          if (r === 1 && k === 1) c.fillRect(x - 2, y - 2, W * 0.14, H * 0.13);
+          else c.fillRect(x, y, W * 0.09, H * 0.08);
+        }
+    },
+    camera(c, W, H) {
+      c.lineWidth = W * 0.075;
+      c.strokeRect(W * 0.08, H * 0.28, W * 0.56, H * 0.46);
+      c.beginPath();
+      c.moveTo(W * 0.68, H * 0.44); c.lineTo(W * 0.93, H * 0.3); c.lineTo(W * 0.93, H * 0.72); c.lineTo(W * 0.68, H * 0.58);
+      c.closePath(); c.fill();
+      c.beginPath(); c.arc(W * 0.24, H * 0.44, W * 0.055, 0, 7); c.fill();
+      c.fillRect(W * 0.32, H * 0.84, W * 0.2, H * 0.06);
+    },
+    timeline(c, W, H) {
+      const rows = [[0.06, 0.26, 0.36, 0.2, 0.62, 0.3], [0.06, 0.4, 0.5, 0.42], [0.06, 0.14, 0.24, 0.3, 0.6, 0.14, 0.8, 0.14]];
+      rows.forEach((segs, r) => {
+        const y = H * (0.28 + r * 0.2);
+        for (let i = 0; i < segs.length; i += 2) c.fillRect(W * segs[i], y, W * segs[i + 1] - 3, H * 0.11);
+      });
+      c.fillRect(W * 0.55, H * 0.14, W * 0.045, H * 0.78);
+      c.beginPath(); c.moveTo(W * 0.48, H * 0.06); c.lineTo(W * 0.67, H * 0.06); c.lineTo(W * 0.575, H * 0.18); c.closePath(); c.fill();
+    },
+    chart(c, W, H) {
+      const b = [0.32, 0.46, 0.38, 0.62];
+      b.forEach((h, i) => c.fillRect(W * (0.12 + i * 0.2), H * (0.88 - h), W * 0.12, H * h));
+      c.fillRect(W * 0.06, H * 0.88, W * 0.88, H * 0.05);
+      c.lineWidth = W * 0.05;
+      c.beginPath(); c.moveTo(W * 0.12, H * 0.42); c.lineTo(W * 0.38, H * 0.3); c.lineTo(W * 0.56, H * 0.38); c.lineTo(W * 0.84, H * 0.1); c.stroke();
+      c.beginPath(); c.moveTo(W * 0.92, H * 0.04); c.lineTo(W * 0.72, H * 0.06); c.lineTo(W * 0.88, H * 0.22); c.closePath(); c.fill();
+    },
+    mono(c, W, H) {
+      c.font = `800 ${H * 1.05}px Geist, sans-serif`;
+      c.textAlign = "center";
+      c.textBaseline = "alphabetic";
+      const initials = S.fullName.split(" ").map((p) => p[0]).join("").toUpperCase();
+      c.fillText(initials, W / 2, H * 0.88);
+    }
+  };
+
+  // Rasteriza un dibujo en una grilla de valores 0..1
+  function rasterize(drawFn, cols, rows, cw, ch) {
+    const k = 4, W = cols * cw * k, H = rows * ch * k;
+    const cv = document.createElement("canvas");
+    cv.width = Math.ceil(W); cv.height = Math.ceil(H);
+    const c = cv.getContext("2d");
+    c.fillStyle = c.strokeStyle = "#000";
+    drawFn(c, W, H);
+    const data = c.getImageData(0, 0, cv.width, cv.height).data;
+    const out = new Float32Array(cols * rows);
+    const sx = cw * k, sy = ch * k;
+    for (let r = 0; r < rows; r++)
+      for (let q = 0; q < cols; q++) {
+        let sum = 0, n = 0;
+        for (let y = Math.floor(r * sy); y < (r + 1) * sy; y += 2)
+          for (let x = Math.floor(q * sx); x < (q + 1) * sx; x += 2) { sum += data[(y * cv.width + x) * 4 + 3]; n++; }
+        out[r * cols + q] = sum / n / 255;
+      }
+    return out;
+  }
+
+  const NOISE = "!<>-_\\/[]{}=+*^?#%01";
+  function makeAscii(pre, drawFn, cols, rows) {
+    const { cw, ch } = cellSize(pre);
+    const grid = rasterize(drawFn, cols, rows, cw, ch);
+    const target = [...grid].map((v) =>
+      v > 0.5 ? "%%%%#%%%#%"[(Math.random() * 10) | 0] : v > 0.22 ? "+=*#"[(Math.random() * 4) | 0] : v > 0.07 ? "-:."[(Math.random() * 3) | 0] : " "
+    );
+    const toText = (arr) => {
+      let s = "";
+      for (let r = 0; r < rows; r++) s += arr.slice(r * cols, (r + 1) * cols).join("") + (r < rows - 1 ? "\n" : "");
+      return s;
+    };
+    const api = {
+      visible: false,
+      final() { pre.textContent = toText(target); },
+      form(dur = 1300) {
+        if (reduce) return api.final();
+        const settle = target.map((_, i) => ((i / cols | 0) / rows) * 0.35 + Math.random() * 0.65);
+        const t0 = performance.now();
+        cancelAnimationFrame(api.raf);
+        const tick = (now) => {
+          const p = clamp((now - t0) / dur);
+          const frame = target.map((t, i) => {
+            if (p >= settle[i]) return t;
+            const near = settle[i] - p;
+            if (t !== " " || Math.random() < 0.18 * (1 - p)) return near < 0.5 ? NOISE[(Math.random() * NOISE.length) | 0] : " ";
+            return " ";
+          });
+          pre.textContent = toText(frame);
+          if (p < 1) api.raf = requestAnimationFrame(tick);
+          else api.final();
+        };
+        api.raf = requestAnimationFrame(tick);
+      },
+      shimmer() {
+        // parpadeo sutil de caracteres, como si la forma "respirara"
+        for (let n = 0; n < 4; n++) {
+          const i = (Math.random() * target.length) | 0;
+          if (target[i] === "%" || target[i] === "#") target[i] = target[i] === "%" ? "#" : "%";
+        }
+        if (!api.raf || pre.textContent.length) pre.textContent = toText(target);
+      }
+    };
+    pre.textContent = toText(target.map(() => " "));
+    return api;
+  }
+
+  const asciis = [];
+  function buildAscii() {
+    $$(".svc .ascii").forEach((pre) => {
+      const a = makeAscii(pre, ICONS[pre.dataset.icon], 30, 20);
+      a.el = pre;
+      asciis.push(a);
+      pre.closest(".svc").addEventListener("mouseenter", () => a.form(900));
+    });
+    const big = $("#asciiMono");
+    const mono = makeAscii(big, ICONS.mono, innerWidth < 900 ? 52 : 56, 22);
+    mono.el = big;
+    asciis.push(mono);
+    big.parentElement.addEventListener("mouseenter", () => mono.form(1100));
+
+    const io = new IntersectionObserver((ents) => {
+      ents.forEach((e) => {
+        const a = asciis.find((x) => x.el === e.target);
+        if (!a) return;
+        if (e.isIntersecting && !a.done) { a.done = true; a.form(); }
+        a.visible = e.isIntersecting;
+      });
+    }, { threshold: 0.4 });
+    asciis.forEach((a) => io.observe(a.el));
+    if (!reduce) setInterval(() => asciis.forEach((a) => a.visible && a.done && a.shimmer()), 140);
+  }
+
+  /* ---------------- NOMBRE GIGANTE: letras que se forman + video adentro ---------------- */
+  const hero = (() => {
+    const box = $("#heroName"), cv = $("#nameCanvas"), c = cv.getContext("2d"), vid = $(".hero__video", box);
+    const mk = document.createElement("canvas"), m = mk.getContext("2d"); // máscara con las letras
+    const FONT = (px) => `800 ${px}px Geist, sans-serif`;
+    let W = 0, H = 0, dpr = 1, letters = [], fs = 100, t0 = null, tint = 1, tintTarget = 1, running = true;
+    const chars = [];
+
+    function layout() {
+      dpr = Math.min(devicePixelRatio || 1, 2);
+      W = box.clientWidth;
+      const lines = innerWidth <= 900 ? S.name.split(" ") : [S.name];
+      const ls = -0.06; // letter-spacing en em
+      const measure = (line, size) => {
+        c.font = FONT(size);
+        let w = 0;
+        for (const ch of line) w += c.measureText(ch).width + ls * size;
+        return w - ls * size;
+      };
+      const widest = Math.max(...lines.map((l) => measure(l, 100)));
+      fs = (100 * W) / widest * 0.99;
+      const lh = fs * 0.8;
+      H = Math.ceil(lh * lines.length + fs * 0.12);
+      cv.width = mk.width = W * dpr; cv.height = mk.height = H * dpr; cv.style.height = H + "px";
+      letters = [];
+      c.font = FONT(fs);
+      let idx = 0;
+      lines.forEach((line, li) => {
+        let x = 0;
+        for (const ch of line) {
+          const w = c.measureText(ch).width;
+          if (ch !== " ") letters.push({ ch, x, y: lh * (li + 1) - fs * 0.02, i: idx++ });
+          x += w + ls * fs;
+        }
+      });
+    }
+
+    function drawLetters(now) {
+      const c = m;
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.clearRect(0, 0, W, H);
+      c.fillStyle = "#000";
+      c.font = FONT(fs);
+      c.textBaseline = "alphabetic";
+      let allDone = true;
+      for (const L of letters) {
+        let p = 1;
+        if (!reduce) {
+          const el = t0 === null ? -1 : now - t0 - L.i * 60;
+          p = clamp(el / 1100);
+          if (p < 1) allDone = false;
+        }
+        if (p <= 0) continue;
+        const e = 1 - Math.pow(1 - p, 4);
+        c.globalAlpha = e;
+        c.filter = e < 1 ? `blur(${(1 - e) * 14}px)` : "none";
+        c.fillText(L.ch, L.x, L.y + (1 - e) * fs * 0.55);
+      }
+      c.globalAlpha = 1; c.filter = "none";
+      return allDone;
+    }
+
+    function frame(now) {
+      if (!running) return;
+      tint += (tintTarget - tint) * 0.08;
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.globalCompositeOperation = "source-over";
+      c.clearRect(0, 0, W, H);
+      // 1) fondo: video (blanco y negro con tinte azul) o azul plano
+      if (vid.readyState >= 2) {
+        const vr = vid.videoWidth / vid.videoHeight, r = W / H;
+        let dw = W, dh = W / vr;
+        if (dh < H) { dh = H; dw = H * vr; }
+        c.filter = tint > 0.5 ? "grayscale(1) contrast(1.2)" : "none";
+        c.drawImage(vid, (W - dw) / 2, (H - dh) / 2, dw, dh);
+        c.filter = "none";
+        if (tint > 0.01) {
+          c.globalCompositeOperation = "lighten";
+          c.globalAlpha = tint;
+          c.fillStyle = "#1F2BFF";
+          c.fillRect(0, 0, W, H);
+          c.globalAlpha = 1;
+        }
+      } else {
+        c.fillStyle = "#1F2BFF";
+        c.fillRect(0, 0, W, H);
+      }
+      // 2) recorte con las letras (que se van formando)
+      drawLetters(now);
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalCompositeOperation = "destination-in";
+      c.drawImage(mk, 0, 0);
+      requestAnimationFrame(frame);
+    }
+
+    box.addEventListener("mouseenter", () => (tintTarget = 0));
+    box.addEventListener("mouseleave", () => (tintTarget = 1));
+    if (isTouch) box.addEventListener("click", () => (tintTarget = tintTarget ? 0 : 1));
+    new IntersectionObserver(([e]) => {
+      const was = running;
+      running = e.isIntersecting;
+      if (running) { vid.play().catch(() => {}); if (!was) requestAnimationFrame(frame); }
+      else vid.pause();
+    }).observe(box);
+
+    return {
+      init() { layout(); requestAnimationFrame(frame); },
+      resize: layout,
+      play() { t0 = performance.now(); }
+    };
+  })();
+  const fitName = () => hero.resize();
+
+  /* ---------------- LOADER DE PÍXELES ---------------- */
+  function runLoader(done) {
+    const cv = $("#loader");
+    if (reduce) { cv.remove(); return done(); }
+    cv.style.background = "transparent";
+    const c = cv.getContext("2d");
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const W = innerWidth, H = innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    c.scale(dpr, dpr);
+    const size = Math.max(26, Math.round(W / 36));
+    const cols = Math.ceil(W / size), rows = Math.ceil(H / size);
+    const pal = ["#1F2BFF", "#1F2BFF", "#0A14D6", "#3D48FF", "#5C66FF", "#8C93FF", "#C3C7FF"];
+    const cells = [];
+    for (let r = 0; r < rows; r++)
+      for (let q = 0; q < cols; q++)
+        cells.push({ x: q * size, y: r * size, th: (r / rows) * 0.55 + Math.random() * 0.45, col: pal[(Math.random() * pal.length) | 0] });
+    const HOLD = 350, DUR = 1300;
+    const t0 = performance.now();
+    let fired = false;
+    const tick = (now) => {
+      const el = now - t0;
+      const t = clamp((el - HOLD) / DUR);
+      c.clearRect(0, 0, W, H);
+      for (const k of cells) {
+        if (k.th < t) continue;
+        // los píxeles cercanos a desaparecer se aclaran
+        c.fillStyle = k.th - t < 0.08 ? pal[5 + ((k.th * 100) | 0) % 2] : el < HOLD ? "#1F2BFF" : k.col;
+        c.fillRect(k.x, k.y, size + 0.5, size + 0.5);
+      }
+      if (!fired && t > 0.3) { fired = true; done(); }
+      if (t < 1) requestAnimationFrame(tick);
+      else cv.remove();
+    };
+    requestAnimationFrame(tick);
+  }
+
+  /* ---------------- SCROLL: palabras, showreel, líneas ---------------- */
+  const wordBlocks = $$(".reveal-words");
+  const frame = $("#showreelFrame");
+  function onScroll() {
+    const vh = innerHeight;
+    wordBlocks.forEach((b) => {
+      const r = b.getBoundingClientRect();
+      const p = clamp((vh * 0.88 - r.top) / (r.height + vh * 0.3));
+      const ws = b._w || (b._w = $$(".wd", b));
+      ws.forEach((w, i) => w.classList.toggle("on", i / ws.length < p * 1.15));
+    });
+    if (!reduce) {
+      const r = frame.getBoundingClientRect();
+      const p = clamp((vh - r.top) / (vh * 0.85));
+      const e = 1 - Math.pow(1 - p, 2);
+      frame.style.clipPath = `inset(${(1 - e) * 12}% ${(1 - e) * 8}% ${(1 - e) * 12}% ${(1 - e) * 8}%)`;
+    }
+  }
+  addEventListener("scroll", () => requestAnimationFrame(onScroll), { passive: true });
+
+  /* ---------------- OBSERVADORES ---------------- */
+  const once = new IntersectionObserver((ents) => {
+    ents.forEach((e) => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      if (el.hasAttribute("data-scramble")) scramble(el, 1000);
+      if (el.classList.contains("step")) el.classList.add("seen");
+      if (el.classList.contains("work")) el.classList.add("in");
+      once.unobserve(el);
+    });
+  }, { threshold: 0.35 });
+
+  // Videos: preview del showreel en loop mientras se ve; en mobile los trabajos se reproducen solos
+  const vio = new IntersectionObserver((ents) => {
+    ents.forEach((e) => {
+      const v = e.target.tagName === "VIDEO" ? e.target : $("video", e.target);
+      if (e.isIntersecting) { v.play().catch(() => {}); e.target.classList?.add("playing"); }
+      else { v.pause(); e.target.classList?.remove("playing"); }
+    });
+  }, { threshold: 0.5 });
+
+  /* ---------------- LIGHTBOX ---------------- */
+  const lb = $("#lightbox"), lbv = $("#lbVideo");
+  function openVideo(src) {
+    lbv.src = src; lbv.muted = false;
+    document.body.classList.add("lb-open");
+    lb.classList.add("open"); lb.setAttribute("aria-hidden", "false");
+    lbv.play().catch(() => {});
+  }
+  function closeVideo() {
+    document.body.classList.remove("lb-open");
+    lb.classList.remove("open"); lb.setAttribute("aria-hidden", "true");
+    lbv.pause(); lbv.removeAttribute("src"); lbv.load();
+  }
+  $("#lbClose").onclick = closeVideo;
+  lb.addEventListener("click", (e) => e.target === lb && closeVideo());
+  addEventListener("keydown", (e) => e.key === "Escape" && (closeVideo(), document.body.classList.remove("menu-open")));
+  $("#showreelPlay").onclick = () => openVideo(S.showreel.video);
+
+  /* ---------------- TRABAJOS ---------------- */
+  $$(".work").forEach((w) => {
+    const v = $("video", w), cur = $(".work__cursor", w), media = $(".work__media", w);
+    w.addEventListener("click", () => openVideo(w.dataset.video));
+    if (isTouch) return vio.observe(w);
+    w.addEventListener("mouseenter", () => { v.play().catch(() => {}); scramble($(".work__title", w), 600); });
+    w.addEventListener("mouseleave", () => v.pause());
+    media.addEventListener("mousemove", (e) => {
+      const r = media.getBoundingClientRect();
+      cur.style.transform = `translate(${e.clientX - r.left + 14}px, ${e.clientY - r.top + 14}px)`;
+    });
+  });
+
+  /* ---------------- PROCESO (acordeón) ---------------- */
+  $$(".step").forEach((s) => {
+    $(".step__head", s).addEventListener("click", () => {
+      const open = s.classList.toggle("open");
+      $(".step__head", s).setAttribute("aria-expanded", open);
+      if (open) scramble($(".step__title", s), 500);
+    });
+  });
+
+  /* ---------------- SERVICIOS en touch: tags visibles al entrar ---------------- */
+  if (isTouch) {
+    const tio = new IntersectionObserver((ents) => ents.forEach((e) => e.target.classList.toggle("in-touch", e.isIntersecting)), { threshold: 0.6 });
+    $$(".svc").forEach((s) => tio.observe(s));
+  }
+
+  /* ---------------- MENÚ ---------------- */
+  const toggleMenu = () => {
+    const open = document.body.classList.toggle("menu-open");
+    $("#menu").setAttribute("aria-hidden", !open);
+    $("#menuBtn").setAttribute("aria-expanded", open);
+    if (open) $$(".menu a").forEach((a, i) => setTimeout(() => scramble(a, 600), 150 + i * 60));
+  };
+  $("#menuBtn").onclick = toggleMenu;
+  $("#menuBtnTop").onclick = toggleMenu;
+  $$(".menu a").forEach((a) => a.addEventListener("click", () => document.body.classList.remove("menu-open")));
+
+  /* ---------------- SCRAMBLE AL PASAR EL MOUSE ---------------- */
+  $$("[data-scramble-hover]").forEach((el) => {
+    const target = el.closest("a,button") || el;
+    target.addEventListener("mouseenter", () => scramble(el, 500));
+  });
+
+  /* ---------------- COPIAR EMAIL ---------------- */
+  $("#copyBtn").onclick = async () => {
+    const b = $("#copyBtn");
+    try { await navigator.clipboard.writeText(S.email); b.textContent = "¡Copiado!"; }
+    catch { b.textContent = "Copialo a mano"; }
+    b.dataset.final = b.textContent; scramble(b, 400);
+    setTimeout(() => { b.textContent = "Copiar"; delete b.dataset.final; }, 1800);
+  };
+
+  /* ---------------- FAVICON: la "JC" de píxeles se forma en la pestaña ---------------- */
+  function animateFavicon() {
+    if (reduce) return;
+    const map = "................|................|................|...####...#####.|...####..######.|.....##..##.....|.....##..##.....|.....##..##.....|.....##..##.....|.##..##..##.....|.##..##..##.....|.######..######.|..####....#####.|................|................|................".split("|");
+    const px = [];
+    map.forEach((row, y) => [...row].forEach((ch, x) => ch === "#" && px.push({ x, y, at: Math.random() })));
+    const link = document.querySelector('link[rel="icon"][type="image/svg+xml"]');
+    if (!link) return;
+    const original = link.href;
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 32;
+    const c = cv.getContext("2d");
+    let step = 0;
+    const STEPS = 14;
+    const id = setInterval(() => {
+      step++;
+      const t = step / STEPS;
+      c.clearRect(0, 0, 32, 32);
+      c.fillStyle = "#1F2BFF";
+      c.beginPath(); c.roundRect ? c.roundRect(0, 0, 32, 32, 6) : c.rect(0, 0, 32, 32); c.fill();
+      c.fillStyle = "#fff";
+      px.forEach((p) => p.at < t && c.fillRect(p.x * 2, p.y * 2, 2, 2));
+      link.href = cv.toDataURL("image/png");
+      if (step >= STEPS) { clearInterval(id); link.href = original; }
+    }, 90);
+  }
+
+  /* ---------------- ARRANQUE ---------------- */
+  const start = () => {
+    hero.init();
+    buildAscii();
+    $$("[data-scramble]").forEach((el) => {
+      // se ocultan hasta que entran en pantalla para que "se formen"
+      if (!reduce) el.style.visibility = "hidden";
+      once.observe(el);
+    });
+    $$(".step,.work").forEach((el) => once.observe(el));
+    vio.observe(srv);
+    onScroll();
+    runLoader(() => {
+      document.body.classList.add("ready");
+      hero.play();
+      animateFavicon();
+      document.body.classList.remove("is-loading");
+    });
+  };
+  // al primer scramble se hace visible
+  const _scr = scramble;
+  scramble = function (el, d) { el.style.visibility = ""; return _scr(el, d); };
+
+  addEventListener("resize", () => { fitName(); onScroll(); });
+  // el canvas del nombre necesita Geist 800 cargada antes de medir
+  const fontsReady = document.fonts
+    ? Promise.all([document.fonts.load('800 100px "Geist"'), document.fonts.load('600 10px "Geist Mono"')]).then(() => document.fonts.ready)
+    : Promise.resolve();
+  Promise.race([fontsReady, new Promise((r) => setTimeout(r, 2500))]).then(start);
+})();

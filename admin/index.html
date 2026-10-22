@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel · Juan Cruz</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <section class="login" id="login">
+    <form class="login__card" id="loginForm">
+      <img src="/favicon.svg" alt="" class="login__logo">
+      <h1>Panel de contenido</h1>
+      <p>Entrá para cambiar los videos de tu portfolio.</p>
+      <label for="pw">Contraseña</label>
+      <input id="pw" type="password" autocomplete="current-password" required>
+      <button type="submit" class="btn btn--primary" id="loginBtn">Entrar</button>
+      <p class="login__error" id="loginError" role="alert"></p>
+    </form>
+  </section>
+
+  <!-- PANEL -->
+  <div class="app" id="app" hidden>
+    <header class="top">
+      <div class="top__brand"><img src="/favicon.svg" alt=""> Panel · Juan Cruz</div>
+      <nav class="top__nav">
+        <a href="/" target="_blank" rel="noopener">Ver sitio ↗</a>
+        <button type="button" id="logout">Salir</button>
+      </nav>
+    </header>
+
+    <main class="main">
+      <p class="intro">Subí un video, elegí dónde se ve y escribí su descripción y etiquetas. Cuando termines, tocá <b>Publicar cambios</b>.</p>
+
+      <section class="block">
+        <div class="block__head">
+          <h2>Videos principales</h2>
+          <p>Se ven arriba de todo y en la sección Showreel.</p>
+        </div>
+        <div class="slots">
+          <article class="slot" id="slotHero">
+            <div class="slot__media"><video muted loop playsinline autoplay></video><div class="progress"><i></i><span></span></div></div>
+            <div class="slot__body">
+              <span class="badge">Inicio</span>
+              <h3>Video dentro del nombre</h3>
+              <p class="hint">Se reproduce sin sonido adentro de las letras "juan cruz".</p>
+              <button type="button" class="btn" data-pick="hero">Cambiar video</button>
+            </div>
+          </article>
+          <article class="slot" id="slotShowreel">
+            <div class="slot__media"><video muted loop playsinline autoplay></video><div class="progress"><i></i><span></span></div></div>
+            <div class="slot__body">
+              <span class="badge">Showreel 2026</span>
+              <h3>Video del showreel</h3>
+              <p class="hint">Se ve grande en la sección Showreel y se abre con sonido al tocar play.</p>
+              <label class="check"><input type="checkbox" id="sameVideo"> Usar el mismo video del inicio</label>
+              <label for="srLabel">Texto de la etiqueta</label>
+              <input id="srLabel" type="text" maxlength="80" placeholder="Historias que retienen">
+              <button type="button" class="btn" data-pick="showreel">Cambiar video</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="block">
+        <div class="block__head">
+          <h2>Trabajos</h2>
+          <p>Aparecen en "Trabajos recientes", en este orden.</p>
+        </div>
+        <div class="works" id="works"></div>
+        <button type="button" class="btn btn--add" id="addWork">+ Agregar trabajo</button>
+      </section>
+    </main>
+
+    <footer class="bar">
+      <span class="bar__status" id="status">Todo publicado</span>
+      <button type="button" class="btn btn--primary" id="publish" disabled>Publicar cambios</button>
+    </footer>
+  </div>
+
+  <input type="file" id="filePick" accept="video/mp4,video/quicktime,video/webm,video/*" hidden>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="/content.js"></script>
+  <script type="module" src="/admin/admin.js"></script>
+</body>
+</html>
