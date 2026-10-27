@@ -5,7 +5,12 @@ const BLOB_CLIENT = "https://esm.sh/@vercel/blob@2.8.0/client";
 
 let password = "";
 let storage = "local";
-let state = { hero: {}, showreel: {}, works: [], contact: {}, theme: {} };
+let state = { hero: {}, showreel: {}, works: [], reels: [], contact: {}, theme: {} };
+const LISTS = {
+  works: { box: "#works", empty: "Todavía no hay trabajos horizontales. Agregá el primero con el botón de abajo.", item: "trabajo" },
+  reels: { box: "#reels", empty: "Todavía no hay reels. Agregá el primero con el botón de abajo.", item: "reel" }
+};
+const isVerticalRatio = (r) => r === "9/16" || r === "4/5";
 const DEFAULT_THEME = { primary: "#0404E2", deep: "#0303B5", light: "#4040FB", darkBg: "#05052E", darkInk: "#F5F5FA", darkAccent: "#7B7BFF" };
 let dirty = false;
 let uploading = 0;
@@ -95,7 +100,8 @@ async function loadContent() {
   state = {
     hero: { ...(d.hero || {}), ...(remote.hero?.video ? remote.hero : {}) },
     showreel: { ...(d.showreel || {}), ...(remote.showreel?.video ? remote.showreel : {}) },
-    works: Array.isArray(remote.works) && remote.works.length ? remote.works : structuredClone(d.works || []),
+    works: Array.isArray(remote.works) && (remote.works.length || Array.isArray(remote.reels)) ? remote.works : structuredClone(d.works || []),
+    reels: Array.isArray(remote.reels) ? remote.reels : [],
     contact: {
       email: remote.contact?.email || d.email || "",
       whatsapp: remote.contact?.whatsapp?.display || d.whatsapp?.display || "",
@@ -104,6 +110,9 @@ async function loadContent() {
     theme: { ...DEFAULT_THEME, ...(d.theme || {}), ...(remote.theme || {}) }
   };
   if (typeof state.showreel.linked !== "boolean") state.showreel.linked = state.hero.video === state.showreel.video;
+  // datos viejos: los videos verticales que estaban en trabajos pasan a la sección Reels
+  state.reels.push(...state.works.filter((w) => isVerticalRatio(w.ratio)));
+  state.works = state.works.filter((w) => !isVerticalRatio(w.ratio));
   renderSlots();
   renderWorks();
   renderContact();
@@ -386,10 +395,12 @@ function chipsField(work, onChange) {
   return box;
 }
 
-function workCard(w, i) {
+function workCard(w, i, key = "works") {
+  const list = state[key];
+  const isReel = key === "reels";
   const card = document.createElement("article");
   card.className = "work";
-  const id = `w${i}`;
+  const id = `${key}${i}`;
   card.innerHTML = `
     <div class="work__side">
       <div class="work__media ${w.ratio === "9/16" || w.ratio === "4/5" ? "is-vertical" : ""}">
@@ -416,14 +427,14 @@ function workCard(w, i) {
       </div>
       <label for="${id}d">Descripción</label>
       <textarea id="${id}d" maxlength="600" data-f="text" placeholder="Qué hiciste y para quién"></textarea>
-      <label>Etiquetas</label>
+      ${isReel ? `<p class="small">En el sitio se ve el título en el carrusel; la descripción aparece al abrir el reel.</p>` : `<label>Etiquetas</label>
       <div class="tags-slot"></div>
-      <p class="small">Hasta 8. Por ejemplo: Edición, Reels, Motion.</p>
+      <p class="small">Hasta 8. Por ejemplo: Edición, Reels, Motion.</p>`}
       <div class="work__actions">
         <div class="work__order">
           <span class="work__num">#${i + 1}</span>
           <button type="button" class="btn btn--ghost" data-act="up" ${i === 0 ? "disabled" : ""} aria-label="Subir">↑</button>
-          <button type="button" class="btn btn--ghost" data-act="down" ${i === state.works.length - 1 ? "disabled" : ""} aria-label="Bajar">↓</button>
+          <button type="button" class="btn btn--ghost" data-act="down" ${i === list.length - 1 ? "disabled" : ""} aria-label="Bajar">↓</button>
         </div>
         <button type="button" class="btn btn--danger" data-act="del">Eliminar</button>
       </div>
@@ -437,14 +448,14 @@ function workCard(w, i) {
     el.value = w[el.dataset.f] || "";
     el.addEventListener("input", () => { w[el.dataset.f] = el.value; setDirty(); });
   });
-  card.querySelector(".tags-slot").replaceWith(chipsField(w, () => setDirty()));
+  card.querySelector(".tags-slot")?.replaceWith(chipsField(w, () => setDirty()));
   card.addEventListener("click", async (e) => {
     const act = e.target.closest("[data-act]")?.dataset.act;
     if (!act) return;
     if (act === "up" || act === "down") {
       const j = act === "up" ? i - 1 : i + 1;
-      [state.works[i], state.works[j]] = [state.works[j], state.works[i]];
-      renderWorks(); setDirty();
+      [list[i], list[j]] = [list[j], list[i]];
+      renderList(key); setDirty();
     } else if (act === "del") {
       const b = e.target.closest("[data-act]");
       if (!b.dataset.armed) {
@@ -452,9 +463,9 @@ function workCard(w, i) {
         setTimeout(() => { delete b.dataset.armed; b.textContent = "Eliminar"; }, 3000);
         return;
       }
-      state.works.splice(i, 1);
-      renderWorks(); setDirty();
-      toast("Trabajo eliminado. Publicá para confirmarlo.");
+      list.splice(i, 1);
+      renderList(key); setDirty();
+      toast(`${isReel ? "Reel eliminado" : "Trabajo eliminado"}. Publicá para confirmarlo.`);
     } else if (act === "poster") {
       openPosterPicker(card, w);
     } else if (act === "poster-cancel") {
@@ -472,7 +483,7 @@ function workCard(w, i) {
         const url = await uploadFile(new File([blob], name, { type: "image/jpeg" }), name, () => {}).finally(() => { uploading--; updateBar(); });
         sessionUploads.add(url);
         w.poster = url;
-        renderWorks(); setDirty();
+        renderList(key); setDirty();
         toast("Portada nueva lista. Tocá Publicar cambios.");
       } catch (err) {
         btn.disabled = false; btn.textContent = "Usar este cuadro";
@@ -484,7 +495,8 @@ function workCard(w, i) {
       try {
         const up = await uploadVideo(file, card);
         Object.assign(w, up);
-        renderWorks(); setDirty();
+        if (placeByOrientation(w, key)) return;
+        renderList(key); setDirty();
         toast("Video reemplazado. Tocá Publicar cambios.");
       } catch (err) { toast(err.message || "No se pudo subir el video.", true); }
     }
@@ -518,45 +530,62 @@ function closePosterPicker(card) {
   card.querySelector(".work__side-btns").hidden = false;
 }
 
-function renderWorks() {
-  const box = $("#works");
+function renderList(key) {
+  const box = $(LISTS[key].box);
   box.innerHTML = "";
-  if (!state.works.length) {
-    box.innerHTML = `<p class="empty">Todavía no hay trabajos. Agregá el primero con el botón de abajo.</p>`;
+  if (!state[key].length) {
+    box.innerHTML = `<p class="empty">${LISTS[key].empty}</p>`;
     return;
   }
-  state.works.forEach((w, i) => box.appendChild(workCard(w, i)));
+  state[key].forEach((w, i) => box.appendChild(workCard(w, i, key)));
+}
+function renderWorks() { renderList("works"); renderList("reels"); }
+
+// Si el video no coincide con la sección (un vertical en Trabajos o un horizontal en Reels), lo mueve a la correcta
+function placeByOrientation(w, key) {
+  const target = isVerticalRatio(w.ratio) ? "reels" : "works";
+  if (target === key) return false;
+  state[key].splice(state[key].indexOf(w), 1);
+  state[target].unshift(w);
+  renderWorks(); setDirty();
+  toast(target === "reels" ? "Ese video es vertical: lo pasé a la sección Reels." : "Ese video es horizontal: lo pasé a Trabajos.");
+  setTimeout(() => $(`${LISTS[target].box} .work`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+  return true;
 }
 
-$("#addWork").addEventListener("click", async () => {
+document.querySelectorAll("[data-add]").forEach((btn) => btn.addEventListener("click", async () => {
+  const key = btn.dataset.add;
   const file = await pickVideo();
   if (!checkFile(file)) return;
-  const w = { title: file.name.replace(/\.[^.]+$/, ""), text: "", tags: [], year: String(new Date().getFullYear()), video: "", poster: "", ratio: "16/9" };
-  state.works.unshift(w);
-  renderWorks();
-  const card = $("#works .work");
+  const w = { title: file.name.replace(/\.[^.]+$/, ""), text: "", tags: [], year: String(new Date().getFullYear()), video: "", poster: "", ratio: key === "reels" ? "9/16" : "16/9" };
+  state[key].unshift(w);
+  renderList(key);
+  const card = $(`${LISTS[key].box} .work`);
   card.scrollIntoView({ behavior: "smooth", block: "center" });
   try {
     Object.assign(w, await uploadVideo(file, card));
-    renderWorks(); setDirty();
-    $("#works .work input[data-f=title]")?.select();
-    toast("Video subido. Completá el título, la descripción y las etiquetas.");
+    if (placeByOrientation(w, key)) return;
+    renderList(key); setDirty();
+    $(`${LISTS[key].box} .work input[data-f=title]`)?.select();
+    toast(key === "reels" ? "Reel subido. Completá el título y la descripción." : "Video subido. Completá el título, la descripción y las etiquetas.");
   } catch (err) {
-    state.works.shift();
-    renderWorks();
+    state[key].splice(state[key].indexOf(w), 1);
+    renderList(key);
     toast(err.message || "No se pudo subir el video.", true);
   }
-});
+}));
 
 /* ---------- publicar ---------- */
 $("#publish").addEventListener("click", async () => {
   const btn = $("#publish");
   const missing = state.works.findIndex((w) => !w.title?.trim());
   if (missing >= 0) { toast(`Al trabajo #${missing + 1} le falta el título.`, true); return; }
+  const missingReel = state.reels.findIndex((w) => !w.title?.trim());
+  if (missingReel >= 0) { toast(`Al reel #${missingReel + 1} le falta el título.`, true); return; }
   if (state.contact.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.contact.email.trim())) { toast("El mail no parece válido. Revisalo en Contacto.", true); return; }
   if (state.contact.whatsapp && state.contact.whatsapp.replace(/\D/g, "").length < 8) { toast("El número de WhatsApp parece incompleto. Incluí el código de país (+54 9…).", true); return; }
   btn.disabled = true; btn.textContent = "Publicando…";
-  const used = new Set([state.hero.video, state.hero.poster, state.showreel.video, state.showreel.poster, ...state.works.flatMap((w) => [w.video, w.poster])]);
+  const used = new Set([state.hero.video, state.hero.poster, state.showreel.video, state.showreel.poster, ...state.works.flatMap((w) => [w.video, w.poster]), ...state.reels.flatMap((w) => [w.video, w.poster])]);
   const discard = [...sessionUploads].filter((u) => !used.has(u));
   try {
     await api("/api/save", { method: "POST", body: JSON.stringify({ ...state, discard }) });

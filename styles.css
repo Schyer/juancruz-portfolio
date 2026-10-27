@@ -197,6 +197,21 @@ body.menu-open .menu a{opacity:1;transform:none}
 .reels__track.is-dragging{scroll-snap-type:none;cursor:grabbing;user-select:none}
 .reels__track.is-dragging .work__media{pointer-events:none}
 .reel{scroll-snap-align:start}
+
+/* Coverflow (compu): el reel activo al centro y los demás más chicos detrás, a los costados */
+.reels{overflow:hidden}
+.reels__track.is-coverflow{--cf-w:clamp(240px,21vw,310px);display:block;position:relative;height:calc(var(--cf-w) * 16 / 9 + 64px);
+  overflow:visible;margin-right:0;padding-right:0;scroll-snap-type:none;cursor:grab;outline:none}
+.reels__track.is-coverflow:focus-visible{outline:2px solid var(--blue);outline-offset:8px}
+.is-coverflow .reel{position:absolute;top:0;left:50%;width:var(--cf-w);margin-left:calc(var(--cf-w) / -2);
+  transform-origin:50% calc(var(--cf-w) * 8 / 9);transition:transform .75s var(--ease),opacity .5s}
+.is-coverflow .reel .work__media{transition:filter .5s,box-shadow .5s}
+.is-coverflow .reel:not(.is-active){cursor:pointer}
+.is-coverflow .reel:not(.is-active) .work__media{filter:saturate(.55) brightness(.82)}
+.is-coverflow .reel.is-active .work__media{box-shadow:0 30px 60px -30px rgba(7,7,31,.55)}
+.is-coverflow .reel:not(.is-active) .work__cursor{display:none}
+.is-coverflow .reel__info{justify-content:center;text-align:center;opacity:0;transition:opacity .4s}
+.is-coverflow .reel.is-active .reel__info{opacity:1}
 .reel .work__media img{-webkit-user-drag:none}
 .reel__info{display:flex;gap:10px;align-items:baseline;padding-top:12px}
 .reel__num{font-family:var(--mono);font-size:11px;color:var(--blue)}

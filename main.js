@@ -16,7 +16,9 @@
       if (remote && typeof remote === "object") {
         if (remote.hero && remote.hero.video) S.hero = { ...S.hero, ...remote.hero };
         if (remote.showreel && remote.showreel.video) S.showreel = { ...S.showreel, ...remote.showreel };
-        if (Array.isArray(remote.works) && remote.works.length) S.works = remote.works;
+        // trabajos horizontales y reels se cargan por separado desde el panel
+        if (Array.isArray(remote.reels)) S.reels = remote.reels;
+        if (Array.isArray(remote.works) && (remote.works.length || Array.isArray(remote.reels))) S.works = remote.works;
         if (remote.contact) {
           if (remote.contact.email) S.email = remote.contact.email;
           const wa = remote.contact.whatsapp || {};
@@ -149,11 +151,13 @@
   // Trabajos: los horizontales van en la grilla y los verticales en el carrusel de Reels
   const RATIOS = { "16/9": 16 / 9, "1/1": 1, "4/5": 4 / 5, "9/16": 9 / 16 };
   const ratioOf = (w) => (RATIOS[w.ratio] ? w.ratio : "16/9");
-  const horizontals = S.works.filter((w) => RATIOS[ratioOf(w)] >= 1);
-  const verticals = S.works.filter((w) => RATIOS[ratioOf(w)] < 1);
-  const mediaHTML = (w, ratio) => `
+  const allWorks = S.works || [];
+  const horizontals = allWorks.filter((w) => RATIOS[ratioOf(w)] >= 1);
+  // los reels del panel primero; si quedó algún vertical en trabajos (datos viejos), también va al carrusel
+  const verticals = [...(S.reels || []), ...allWorks.filter((w) => RATIOS[ratioOf(w)] < 1)];
+  const mediaHTML = (w, ratio, eager = false) => `
       <div class="work__media" style="aspect-ratio:${ratio}">
-        ${w.poster ? `<img src="${esc(w.poster)}" alt="${esc(w.title)}" loading="lazy">` : ""}
+        ${w.poster ? `<img src="${esc(w.poster)}" alt="${esc(w.title)}" loading="${eager ? "eager" : "lazy"}" decoding="async">` : ""}
         <video src="${esc(w.video)}${w.poster ? "" : "#t=0.5"}" muted loop playsinline preload="${w.poster ? "none" : "metadata"}" ${w.poster ? "" : 'style="opacity:1"'}></video>
         <span class="work__cursor">Ver video ↗</span>
       </div>`;
@@ -181,7 +185,7 @@
     .map(
       (w, i) => `
     <article class="work reel" data-video="${esc(w.video)}" data-title="${esc(w.title)}" data-text="${esc(w.text || "")}">
-      ${mediaHTML(w, "9/16")}
+      ${mediaHTML(w, "9/16", true)}
       <div class="reel__info">
         <span class="reel__num">${String(i + 1).padStart(2, "0")}</span>
         <h3 class="reel__title">${esc(w.title)}</h3>
@@ -656,27 +660,83 @@
     sync();
   })();
 
-  /* ---------------- REELS (carrusel) ---------------- */
+  /* ---------------- REELS (carrusel) ----------------
+     Compu: "coverflow" (el reel activo grande al centro y los demás más chicos detrás, a los costados).
+     Celular: carrusel que se desliza con el dedo. */
   (() => {
     const track = $("#reelsTrack");
     if (!track || !verticals.length) return;
     const cards = $$(".reel", track);
-    const prev = $("#reelsPrev"), next = $("#reelsNext"), count = $("#reelsCount");
+    const prev = $("#reelsPrev"), next = $("#reelsNext"), count = $("#reelsCount"), nav = $(".reels__nav");
+    const pad = (n) => String(n).padStart(2, "0");
+    const wantsCoverflow = () => innerWidth > 900 && !isTouch;
+    let cover = false, active = 0;
+
+    /* --- modo coverflow --- */
+    const layout = () => {
+      const w = cards[0].offsetWidth;
+      cards.forEach((c, i) => {
+        const d = i - active, a = Math.abs(d);
+        const scale = a === 0 ? 1 : a === 1 ? 0.8 : 0.62;
+        const x = Math.sign(d) * (a === 0 ? 0 : a === 1 ? w * 0.64 : w * 1.1);
+        const rot = a === 0 ? 0 : -Math.sign(d) * (a === 1 ? 14 : 22); // los de costado se inclinan hacia el centro
+        c.style.transform = `perspective(1400px) translateX(${x}px) scale(${scale}) rotateY(${rot}deg)`;
+        c.style.zIndex = String(10 - a);
+        c.style.opacity = a > 2 ? "0" : "1";
+        c.style.pointerEvents = a > 2 ? "none" : "";
+        c.classList.toggle("is-active", d === 0);
+        c.setAttribute("aria-hidden", a > 2 ? "true" : "false");
+        const v = $("video", c);
+        if (d === 0 && inView) v.play().catch(() => {}); else v.pause();
+      });
+      count.textContent = `${pad(active + 1)} / ${pad(cards.length)}`;
+      prev.disabled = active === 0;
+      next.disabled = active === cards.length - 1;
+      nav.hidden = cards.length < 2;
+    };
+    const go = (i) => { active = Math.max(0, Math.min(cards.length - 1, i)); layout(); };
+
+    /* --- modo carrusel (celular) --- */
     const step = () => (cards[1] ? cards[1].offsetLeft - cards[0].offsetLeft : track.clientWidth);
     const update = () => {
+      if (cover) return;
       const i = Math.round(track.scrollLeft / step());
-      count.textContent = `${String(Math.min(i + 1, cards.length)).padStart(2, "0")} / ${String(cards.length).padStart(2, "0")}`;
+      count.textContent = `${pad(Math.min(i + 1, cards.length))} / ${pad(cards.length)}`;
       prev.disabled = track.scrollLeft <= 4;
       next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
-      $(".reels__nav").hidden = track.scrollWidth <= track.clientWidth + 4; // si entran todos, sin flechas
+      nav.hidden = track.scrollWidth <= track.clientWidth + 4;
     };
-    prev.onclick = () => track.scrollBy({ left: -step(), behavior: reduce ? "auto" : "smooth" });
-    next.onclick = () => track.scrollBy({ left: step(), behavior: reduce ? "auto" : "smooth" });
-    track.addEventListener("scroll", () => requestAnimationFrame(update), { passive: true });
-    addEventListener("resize", update);
-    update();
 
-    // arrastrar con el mouse (en celular se desliza con el dedo de forma nativa)
+    const setMode = () => {
+      const want = wantsCoverflow();
+      if (want === cover && track.dataset.ready) { cover ? layout() : update(); return; }
+      cover = want;
+      track.dataset.ready = "1";
+      track.classList.toggle("is-coverflow", cover);
+      if (cover) { track.scrollLeft = 0; layout(); }
+      else {
+        cards.forEach((c) => { c.style.transform = c.style.zIndex = c.style.opacity = c.style.pointerEvents = ""; c.classList.remove("is-active"); c.removeAttribute("aria-hidden"); });
+        update();
+      }
+    };
+
+    prev.onclick = () => (cover ? go(active - 1) : track.scrollBy({ left: -step(), behavior: reduce ? "auto" : "smooth" }));
+    next.onclick = () => (cover ? go(active + 1) : track.scrollBy({ left: step(), behavior: reduce ? "auto" : "smooth" }));
+    track.addEventListener("scroll", () => requestAnimationFrame(update), { passive: true });
+    addEventListener("resize", setMode);
+
+    // el reel activo se reproduce solo (sin sonido) mientras la sección está en pantalla
+    let inView = false;
+    new IntersectionObserver(([e]) => { inView = e.isIntersecting; if (cover) layout(); }, { threshold: 0.35 }).observe(track);
+
+    // flechas del teclado cuando el carrusel tiene el foco
+    track.tabIndex = 0;
+    track.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") { e.preventDefault(); next.click(); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); prev.click(); }
+    });
+
+    // arrastrar con el mouse: en coverflow pasa al siguiente/anterior; en carrusel mueve la fila
     let down = false, startX = 0, startLeft = 0, moved = false;
     track.addEventListener("pointerdown", (e) => {
       if (e.pointerType !== "mouse") return;
@@ -685,20 +745,28 @@
     addEventListener("pointermove", (e) => {
       if (!down) return;
       const dx = e.clientX - startX;
-      if (Math.abs(dx) > 5 && !moved) { moved = true; track.classList.add("is-dragging"); }
-      if (moved) track.scrollLeft = startLeft - dx;
+      if (Math.abs(dx) > 6 && !moved) { moved = true; track.classList.add("is-dragging"); }
+      if (moved && !cover) track.scrollLeft = startLeft - dx;
     });
-    addEventListener("pointerup", () => {
+    addEventListener("pointerup", (e) => {
       if (!down) return;
       down = false;
-      if (moved) {
-        track.classList.remove("is-dragging");
-        // al soltar, se acomoda en el reel más cercano
-        track.scrollTo({ left: Math.round(track.scrollLeft / step()) * step(), behavior: "smooth" });
-      }
+      if (!moved) return;
+      track.classList.remove("is-dragging");
+      if (cover) {
+        const dx = e.clientX - startX;
+        if (Math.abs(dx) > 40) go(active + (dx < 0 ? 1 : -1));
+      } else track.scrollTo({ left: Math.round(track.scrollLeft / step()) * step(), behavior: "smooth" });
     });
-    // si se arrastró, no abrir el video
-    track.addEventListener("click", (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+    // clicks: si se arrastró no hace nada; en coverflow, un reel de costado pasa al centro en vez de abrirse
+    track.addEventListener("click", (e) => {
+      if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; return; }
+      if (!cover) return;
+      const card = e.target.closest(".reel");
+      if (card && !card.classList.contains("is-active")) { e.stopPropagation(); e.preventDefault(); go(cards.indexOf(card)); }
+    }, true);
+
+    setMode();
   })();
 
   /* ---------------- PROCESO (acordeón) ---------------- */

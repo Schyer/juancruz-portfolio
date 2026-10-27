@@ -141,11 +141,20 @@
 
       <section class="block">
         <div class="block__head">
-          <h2>Trabajos</h2>
-          <p>Los horizontales aparecen en "Trabajos recientes" y los verticales en el carrusel de "Reels", en este orden.</p>
+          <h2>Trabajos <span class="block__badge">Horizontales</span></h2>
+          <p>Videos horizontales (16:9). Aparecen en "Trabajos recientes", en este orden.</p>
         </div>
         <div class="works" id="works"></div>
-        <button type="button" class="btn btn--add" id="addWork">+ Agregar trabajo</button>
+        <button type="button" class="btn btn--add" data-add="works">+ Agregar trabajo horizontal</button>
+      </section>
+
+      <section class="block">
+        <div class="block__head">
+          <h2>Reels <span class="block__badge">Verticales</span></h2>
+          <p>Videos verticales (9:16) de Reels, TikTok o Shorts. Aparecen en el carrusel "Reels", en este orden.</p>
+        </div>
+        <div class="works works--reels" id="reels"></div>
+        <button type="button" class="btn btn--add" data-add="reels">+ Agregar reel</button>
       </section>
     </main>
 
