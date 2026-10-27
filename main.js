@@ -131,11 +131,16 @@
   $("#showreelLabel").textContent = S.showreel.label;
 
   // Trabajos
+  // Formato de cada video: los verticales (reels) se muestran angostos y sin recortar
+  const RATIOS = { "16/9": 16 / 9, "1/1": 1, "4/5": 4 / 5, "9/16": 9 / 16 };
   $("#works").innerHTML = S.works
     .map(
-      (w, i) => `
-    <article class="work" data-video="${esc(w.video)}">
-      <div class="work__media" style="aspect-ratio:${w.ratio === "9/16" ? "4/5" : w.ratio || "16/9"}">
+      (w, i) => {
+        const ratio = RATIOS[w.ratio] ? w.ratio : "16/9";
+        const vertical = RATIOS[ratio] < 1;
+        return `
+    <article class="work${vertical ? " is-vertical" : ""}" data-video="${esc(w.video)}" style="--ar:${RATIOS[ratio]}">
+      <div class="work__media" style="aspect-ratio:${ratio}">
         ${w.poster ? `<img src="${esc(w.poster)}" alt="${esc(w.title)}" loading="lazy">` : ""}
         <video src="${esc(w.video)}${w.poster ? "" : "#t=0.5"}" muted loop playsinline preload="${w.poster ? "none" : "metadata"}" ${w.poster ? "" : 'style="opacity:1"'}></video>
         <span class="work__cursor">Ver video ↗</span>
@@ -148,7 +153,8 @@
         </div>
         <span class="work__year">${esc(w.year || "")}</span>
       </div>
-    </article>`
+    </article>`;
+      }
     )
     .join("");
 

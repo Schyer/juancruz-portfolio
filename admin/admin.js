@@ -207,24 +207,52 @@ function checkFile(file) {
 }
 
 // Saca un cuadro del video para usarlo como portada y detecta si es vertical
+// Dibuja el cuadro actual del video (lado más largo: 1280 px)
+function frameToCanvas(v) {
+  const scale = Math.min(1, 1280 / Math.max(v.videoWidth, v.videoHeight));
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(v.videoWidth * scale);
+  cv.height = Math.round(v.videoHeight * scale);
+  cv.getContext("2d").drawImage(v, 0, 0, cv.width, cv.height);
+  return cv;
+}
+// Brillo promedio de un cuadro (para no elegir portadas negras de un fundido)
+function brightness(cv) {
+  const s = document.createElement("canvas");
+  s.width = 32; s.height = 32;
+  const c = s.getContext("2d");
+  c.drawImage(cv, 0, 0, 32, 32);
+  const d = c.getImageData(0, 0, 32, 32).data;
+  let sum = 0;
+  for (let i = 0; i < d.length; i += 4) sum += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11;
+  return sum / (d.length / 4);
+}
+const ratioOf = (v) => {
+  const r = v.videoWidth / v.videoHeight;
+  return r < 0.7 ? "9/16" : r < 0.9 ? "4/5" : r < 1.15 ? "1/1" : "16/9";
+};
+const seekTo = (v, t) => new Promise((res) => { v.onseeked = () => res(); v.currentTime = t; });
+
+// Saca una portada del video: prueba varios momentos y se queda con el primero que no sea oscuro
 function makePoster(file) {
   return new Promise((resolve) => {
     const v = document.createElement("video");
     v.muted = true; v.playsInline = true; v.preload = "auto";
     v.src = URL.createObjectURL(file);
-    const fail = () => resolve(null);
-    v.onerror = fail;
-    v.onloadedmetadata = () => { v.currentTime = Math.min(1.2, (v.duration || 2) / 3); };
-    v.onseeked = () => {
-      const w = Math.min(1280, v.videoWidth), h = Math.round(w * v.videoHeight / v.videoWidth);
-      const cv = document.createElement("canvas");
-      cv.width = w; cv.height = h;
-      cv.getContext("2d").drawImage(v, 0, 0, w, h);
-      const r = v.videoWidth / v.videoHeight;
-      const ratio = r < 0.7 ? "9/16" : r < 0.9 ? "4/5" : r < 1.15 ? "1/1" : "16/9";
-      cv.toBlob((blob) => resolve(blob ? { blob, ratio, preview: v.src } : null), "image/jpeg", 0.82);
+    const timer = setTimeout(() => resolve(null), 20000);
+    v.onerror = () => { clearTimeout(timer); resolve(null); };
+    v.onloadedmetadata = async () => {
+      const d = v.duration || 4;
+      let best = null, bestB = -1;
+      for (const f of [0.2, 0.35, 0.5, 0.1, 0.65]) {
+        await seekTo(v, d * f);
+        const cv = frameToCanvas(v), b = brightness(cv);
+        if (b > bestB) { best = cv; bestB = b; }
+        if (b > 35) break;
+      }
+      clearTimeout(timer);
+      best.toBlob((blob) => resolve(blob ? { blob, ratio: ratioOf(v), preview: v.src } : null), "image/jpeg", 0.82);
     };
-    setTimeout(fail, 15000);
   });
 }
 
@@ -355,7 +383,18 @@ function workCard(w, i) {
         <video muted loop playsinline preload="metadata"></video>
         <div class="progress"><i></i><span></span></div>
       </div>
-      <button type="button" class="btn btn--ghost" data-act="video">Cambiar video</button>
+      <div class="poster-pick" hidden>
+        <p class="small">Mové la barra hasta el cuadro que quieras usar como portada.</p>
+        <input type="range" min="0" max="1000" value="200" aria-label="Momento del video para la portada">
+        <div class="poster-pick__btns">
+          <button type="button" class="btn btn--primary" data-act="poster-use">Usar este cuadro</button>
+          <button type="button" class="btn btn--ghost" data-act="poster-cancel">Cancelar</button>
+        </div>
+      </div>
+      <div class="work__side-btns">
+        <button type="button" class="btn btn--ghost" data-act="video">Cambiar video</button>
+        <button type="button" class="btn btn--ghost" data-act="poster">Elegir portada</button>
+      </div>
     </div>
     <div class="work__fields">
       <div class="work__row">
@@ -403,6 +442,29 @@ function workCard(w, i) {
       state.works.splice(i, 1);
       renderWorks(); setDirty();
       toast("Trabajo eliminado. Publicá para confirmarlo.");
+    } else if (act === "poster") {
+      openPosterPicker(card, w);
+    } else if (act === "poster-cancel") {
+      closePosterPicker(card);
+    } else if (act === "poster-use") {
+      const pv = card._pv;
+      if (!pv) return;
+      const btn = e.target.closest("[data-act]");
+      btn.disabled = true; btn.textContent = "Guardando…";
+      try {
+        const cv = frameToCanvas(pv);
+        const blob = await new Promise((r) => cv.toBlob(r, "image/jpeg", 0.82));
+        const name = safeName((w.title || "portada").slice(0, 40)) + "-portada.jpg";
+        uploading++; updateBar();
+        const url = await uploadFile(new File([blob], name, { type: "image/jpeg" }), name, () => {}).finally(() => { uploading--; updateBar(); });
+        sessionUploads.add(url);
+        w.poster = url;
+        renderWorks(); setDirty();
+        toast("Portada nueva lista. Tocá Publicar cambios.");
+      } catch (err) {
+        btn.disabled = false; btn.textContent = "Usar este cuadro";
+        toast(err.message || "No se pudo guardar la portada.", true);
+      }
     } else if (act === "video") {
       const file = await pickVideo();
       if (!checkFile(file)) return;
@@ -415,6 +477,32 @@ function workCard(w, i) {
     }
   });
   return card;
+}
+
+/* ---------- elegir portada desde el video ---------- */
+function openPosterPicker(card, w) {
+  const media = card.querySelector(".work__media");
+  const pick = card.querySelector(".poster-pick");
+  const range = pick.querySelector("input");
+  // video aparte con permiso para leer sus cuadros (Vercel Blob lo permite)
+  const pv = document.createElement("video");
+  pv.crossOrigin = "anonymous";
+  pv.muted = true; pv.playsInline = true; pv.preload = "auto";
+  pv.className = "poster-pick__video";
+  pv.src = src(w.video);
+  media.appendChild(pv);
+  card._pv = pv;
+  pick.hidden = false;
+  card.querySelector(".work__side-btns").hidden = true;
+  pv.onloadedmetadata = () => { pv.currentTime = (range.value / 1000) * pv.duration; };
+  pv.onerror = () => { toast("No se pudo abrir el video para elegir la portada.", true); closePosterPicker(card); };
+  range.oninput = () => { if (pv.duration) pv.currentTime = (range.value / 1000) * pv.duration; };
+}
+function closePosterPicker(card) {
+  card._pv?.remove();
+  card._pv = null;
+  card.querySelector(".poster-pick").hidden = true;
+  card.querySelector(".work__side-btns").hidden = false;
 }
 
 function renderWorks() {
