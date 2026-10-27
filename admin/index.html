@@ -141,21 +141,31 @@
 
       <section class="block">
         <div class="block__head">
+          <h2>Reels <span class="block__badge">Verticales</span></h2>
+          <p>Videos verticales (9:16) de Reels, TikTok o Shorts. Aparecen primero, en el carrusel, en este orden.</p>
+        </div>
+        <div class="section-name">
+          <label for="nameReels">Nombre de la sección en el sitio</label>
+          <input id="nameReels" type="text" maxlength="60" placeholder="Content (YT Shorts / TT / Reels)">
+          <p class="small">Lo que escribas entre paréntesis se muestra más chico, al lado del título.</p>
+        </div>
+        <div class="works works--reels" id="reels"></div>
+        <button type="button" class="btn btn--add" data-add="reels">+ Agregar reel</button>
+      </section>
+      <section class="block">
+        <div class="block__head">
           <h2>Trabajos <span class="block__badge">Horizontales</span></h2>
-          <p>Videos horizontales (16:9). Aparecen en "Trabajos recientes", en este orden.</p>
+          <p>Videos horizontales (16:9). Aparecen en una grilla, debajo del carrusel, en este orden.</p>
+        </div>
+        <div class="section-name">
+          <label for="nameWorks">Nombre de la sección en el sitio</label>
+          <input id="nameWorks" type="text" maxlength="60" placeholder="Content (16:9)">
+          <p class="small">Lo que escribas entre paréntesis se muestra más chico, al lado del título.</p>
         </div>
         <div class="works" id="works"></div>
         <button type="button" class="btn btn--add" data-add="works">+ Agregar trabajo horizontal</button>
       </section>
 
-      <section class="block">
-        <div class="block__head">
-          <h2>Reels <span class="block__badge">Verticales</span></h2>
-          <p>Videos verticales (9:16) de Reels, TikTok o Shorts. Aparecen en el carrusel "Reels", en este orden.</p>
-        </div>
-        <div class="works works--reels" id="reels"></div>
-        <button type="button" class="btn btn--add" data-add="reels">+ Agregar reel</button>
-      </section>
     </main>
 
     <footer class="bar">

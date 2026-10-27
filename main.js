@@ -18,6 +18,7 @@
         if (remote.showreel && remote.showreel.video) S.showreel = { ...S.showreel, ...remote.showreel };
         // trabajos horizontales y reels se cargan por separado desde el panel
         if (Array.isArray(remote.reels)) S.reels = remote.reels;
+        if (remote.sections) S.sections = { ...S.sections, ...remote.sections };
         if (Array.isArray(remote.works) && (remote.works.length || Array.isArray(remote.reels))) S.works = remote.works;
         if (remote.contact) {
           if (remote.contact.email) S.email = remote.contact.email;
@@ -180,6 +181,16 @@
     .join("");
   if (!horizontals.length) $("#trabajos").hidden = true;
 
+  // Nombres de las secciones: "Content (16:9)" → título "Content" y "(16:9)" más chico al lado
+  const setSectionName = (titleEl, metaEl, text) => {
+    const m = String(text || "").trim().match(/^(.*?)\s*(\(.*\))$/);
+    titleEl.textContent = (m ? m[1] : text) || "Content";
+    metaEl.textContent = m ? m[2] : "";
+    metaEl.hidden = !m;
+  };
+  setSectionName($("#worksTitle"), $("#worksMeta"), S.sections?.works || "Content (16:9)");
+  setSectionName($("#reelsTitle"), $("#reelsMeta"), S.sections?.reels || "Content (YT Shorts / TT / Reels)");
+
   // Reels: solo título y año, para que el carrusel quede limpio (la descripción aparece al abrirlo)
   $("#reelsTrack").innerHTML = verticals
     .map(
@@ -194,6 +205,9 @@
     )
     .join("");
   if (verticals.length) $("#reels").hidden = false;
+  // "Ver trabajos" y el link del menú llevan a la primera sección de videos que haya
+  const firstContent = verticals.length ? "#reels" : "#trabajos";
+  $$('a[href="#trabajos"]').forEach((a) => (a.href = firstContent));
 
   // Proceso
   $("#process").innerHTML = S.process

@@ -50,6 +50,10 @@ window.SITE = {
     }
   ],
 
+  // Nombres de las secciones de videos (también se cambian desde /admin).
+  // Lo que va entre paréntesis se muestra más chico, al lado del título.
+  sections: { reels: "Content (YT Shorts / TT / Reels)", works: "Content (16:9)" },
+
   showreel: {
     video: "media/showreel.mp4",
     poster: "media/showreel.jpg",

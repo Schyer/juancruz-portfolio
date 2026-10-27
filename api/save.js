@@ -32,6 +32,9 @@ function clean(input) {
       if (dark.darkBg && dark.darkInk && dark.darkAccent) Object.assign(out.theme, dark);
     }
   }
+  if (input.sections) {
+    out.sections = { reels: str(input.sections.reels, 60), works: str(input.sections.works, 60) };
+  }
   if (input.contact) {
     const email = str(input.contact.email, 120);
     out.contact = {

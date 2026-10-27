@@ -5,7 +5,8 @@ const BLOB_CLIENT = "https://esm.sh/@vercel/blob@2.8.0/client";
 
 let password = "";
 let storage = "local";
-let state = { hero: {}, showreel: {}, works: [], reels: [], contact: {}, theme: {} };
+let state = { hero: {}, showreel: {}, works: [], reels: [], contact: {}, theme: {}, sections: {} };
+const DEFAULT_SECTIONS = { reels: "Content (YT Shorts / TT / Reels)", works: "Content (16:9)" };
 const LISTS = {
   works: { box: "#works", empty: "Todavía no hay trabajos horizontales. Agregá el primero con el botón de abajo.", item: "trabajo" },
   reels: { box: "#reels", empty: "Todavía no hay reels. Agregá el primero con el botón de abajo.", item: "reel" }
@@ -102,6 +103,7 @@ async function loadContent() {
     showreel: { ...(d.showreel || {}), ...(remote.showreel?.video ? remote.showreel : {}) },
     works: Array.isArray(remote.works) && (remote.works.length || Array.isArray(remote.reels)) ? remote.works : structuredClone(d.works || []),
     reels: Array.isArray(remote.reels) ? remote.reels : [],
+    sections: { ...DEFAULT_SECTIONS, ...(d.sections || {}), ...(remote.sections || {}) },
     contact: {
       email: remote.contact?.email || d.email || "",
       whatsapp: remote.contact?.whatsapp?.display || d.whatsapp?.display || "",
@@ -115,6 +117,8 @@ async function loadContent() {
   state.works = state.works.filter((w) => !isVerticalRatio(w.ratio));
   renderSlots();
   renderWorks();
+  $("#nameReels").value = state.sections.reels || "";
+  $("#nameWorks").value = state.sections.works || "";
   renderContact();
   renderColors();
   refreshLogo();
@@ -193,6 +197,14 @@ Object.entries(COLOR_KEYS).forEach(([id, key]) => {
   hex.addEventListener("blur", () => { hex.value = state.theme[key].toUpperCase(); });
 });
 $("#colReset").addEventListener("click", () => { state.theme = { ...DEFAULT_THEME }; renderColors(); setDirty(); });
+
+/* ---------- nombres de las secciones ---------- */
+[["nameReels", "reels"], ["nameWorks", "works"]].forEach(([id, key]) => {
+  $("#" + id).addEventListener("input", (e) => { state.sections[key] = e.target.value; setDirty(); });
+  $("#" + id).addEventListener("blur", (e) => {
+    if (!e.target.value.trim()) { state.sections[key] = DEFAULT_SECTIONS[key]; e.target.value = DEFAULT_SECTIONS[key]; }
+  });
+});
 
 /* ---------- contacto ---------- */
 function renderContact() {
