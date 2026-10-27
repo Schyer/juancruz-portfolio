@@ -624,10 +624,10 @@
       b.setAttribute("aria-pressed", isDark());
       b.setAttribute("aria-label", isDark() ? "Cambiar a tema claro" : "Cambiar a tema oscuro");
     });
-    const apply = (dark) => {
+    const apply = (dark, remember = true) => {
       if (dark) document.documentElement.setAttribute("data-theme", "dark");
       else document.documentElement.removeAttribute("data-theme");
-      try { localStorage.setItem("jc-mode", dark ? "dark" : "light"); } catch (e) {}
+      if (remember) try { localStorage.setItem("jc-mode", dark ? "dark" : "light"); } catch (e) {}
       document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? THEME.darkBg : THEME.primary);
       sync();
     };
@@ -643,6 +643,16 @@
         document.startViewTransition(() => apply(dark));
       } else apply(dark);
     }));
+    // sin elección manual, sigue el modo claro/oscuro del dispositivo (también si cambia con la página abierta)
+    const mq = matchMedia("(prefers-color-scheme: dark)");
+    let saved = null;
+    try { saved = localStorage.getItem("jc-mode"); } catch (e) {}
+    if (!saved) apply(mq.matches, false);
+    mq.addEventListener?.("change", (e) => {
+      let s = null;
+      try { s = localStorage.getItem("jc-mode"); } catch (err) {}
+      if (!s) apply(e.matches, false);
+    });
     sync();
   })();
 
