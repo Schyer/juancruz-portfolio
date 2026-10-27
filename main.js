@@ -195,7 +195,7 @@
   $("#reelsTrack").innerHTML = verticals
     .map(
       (w, i) => `
-    <article class="work reel" data-video="${esc(w.video)}" data-title="${esc(w.title)}" data-text="${esc(w.text || "")}">
+    <article class="work reel" data-video="${esc(w.video)}" data-title="${esc(w.title)}" data-text="${esc(w.text || "")}" data-tags="${esc((w.tags || []).join("|"))}">
       ${mediaHTML(w, "9/16", true)}
       <div class="reel__info">
         <span class="reel__num">${String(i + 1).padStart(2, "0")}</span>
@@ -606,7 +606,14 @@
     const cap = $("#lbCap");
     lb.classList.toggle("is-vertical", !!info);
     cap.hidden = !info;
-    if (info) { $("h3", cap).textContent = info.title; $("p", cap).textContent = info.text; }
+    if (info) {
+      $("h3", cap).textContent = info.title;
+      $("p", cap).textContent = info.text;
+      const tags = (info.tags || "").split("|").filter(Boolean);
+      const box = $(".lightbox__tags", cap);
+      box.innerHTML = tags.map((t) => `<span>${esc(t)}</span>`).join("");
+      box.hidden = !tags.length;
+    }
     document.body.classList.add("lb-open");
     lb.classList.add("open"); lb.setAttribute("aria-hidden", "false");
     lbv.play().catch(() => {});
@@ -625,7 +632,7 @@
   $$(".work").forEach((w) => {
     const v = $("video", w), cur = $(".work__cursor", w), media = $(".work__media", w);
     w.addEventListener("click", () =>
-      openVideo(w.dataset.video, w.classList.contains("reel") ? { title: w.dataset.title, text: w.dataset.text } : null));
+      openVideo(w.dataset.video, w.classList.contains("reel") ? { title: w.dataset.title, text: w.dataset.text, tags: w.dataset.tags } : null));
     // en celular los trabajos se reproducen al verse; los reels los maneja el carrusel (solo el del centro)
     if (isTouch) { if (!w.classList.contains("reel")) vio.observe(w); return; }
     w.addEventListener("mouseenter", () => { v.play().catch(() => {}); const t = $(".work__title", w); if (t) scramble(t, 600); });

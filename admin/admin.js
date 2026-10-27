@@ -392,7 +392,11 @@ function chipsField(work, onChange) {
   const add = () => {
     const parts = input.value.split(",").map((s) => s.trim()).filter(Boolean);
     if (!parts.length) return;
-    work.tags = [...(work.tags || []), ...parts].slice(0, 8);
+    // sin repetir etiquetas (ignora mayúsculas y tildes)
+    const norm = (t) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const seen = new Set((work.tags || []).map(norm));
+    const fresh = parts.filter((t) => !seen.has(norm(t)) && seen.add(norm(t)));
+    work.tags = [...(work.tags || []), ...fresh].slice(0, 8);
     input.value = "";
     draw(); onChange();
   };
@@ -439,9 +443,9 @@ function workCard(w, i, key = "works") {
       </div>
       <label for="${id}d">Descripción</label>
       <textarea id="${id}d" maxlength="600" data-f="text" placeholder="Qué hiciste y para quién"></textarea>
-      ${isReel ? `<p class="small">En el sitio se ve el título en el carrusel; la descripción aparece al abrir el reel.</p>` : `<label>Etiquetas</label>
+      <label>Etiquetas</label>
       <div class="tags-slot"></div>
-      <p class="small">Hasta 8. Por ejemplo: Edición, Reels, Motion.</p>`}
+      <p class="small">Hasta 8. Por ejemplo: Edición, Reels, Motion.${isReel ? " En el carrusel se ve solo el título; la descripción y las etiquetas aparecen al abrir el reel." : ""}</p>
       <div class="work__actions">
         <div class="work__order">
           <span class="work__num">#${i + 1}</span>

@@ -297,6 +297,8 @@ body.menu-open .wa-float,body.lb-open .wa-float{opacity:0;pointer-events:none}
 .lightbox__cap{max-width:340px;color:#fff}
 .lightbox__cap h3{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
 .lightbox__cap p{margin-top:10px;font-size:14px;line-height:1.5;opacity:.75}
+.lightbox__tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.lightbox__tags span{font-family:var(--mono);font-size:11px;border:1px solid rgba(255,255,255,.28);padding:4px 9px;color:rgba(255,255,255,.85)}
 .lightbox__close{position:absolute;top:22px;right:26px;color:var(--on-accent);font-family:var(--mono);font-size:13px}
 
 /* ---------- RESPONSIVE ---------- */
@@ -322,6 +324,7 @@ body.menu-open .wa-float,body.lb-open .wa-float{opacity:0;pointer-events:none}
   .lightbox.is-vertical video{height:min(72svh,640px)}
   .lightbox__cap{max-width:100%;text-align:center}
   .lightbox__cap p{display:none}
+  .lightbox__tags{justify-content:center;margin-top:10px}
   .work__info{padding-left:0;padding-right:0}
   .step__head{grid-template-columns:44px 1fr 24px}
   .step__meta{display:none}
