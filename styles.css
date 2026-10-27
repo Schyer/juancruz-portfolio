@@ -200,7 +200,7 @@ body.menu-open .menu a{opacity:1;transform:none}
 
 /* Coverflow (compu): el reel activo al centro y los demás más chicos detrás, a los costados */
 .reels{overflow:hidden}
-.reels__track.is-coverflow{--cf-w:clamp(240px,21vw,310px);display:block;position:relative;height:calc(var(--cf-w) * 16 / 9 + 64px);
+.reels__track.is-coverflow{--cf-w:clamp(240px,21vw,310px);touch-action:pan-y;display:block;position:relative;height:calc(var(--cf-w) * 16 / 9 + 64px);
   overflow:visible;margin-right:0;padding-right:0;scroll-snap-type:none;cursor:grab;outline:none}
 .reels__track.is-coverflow:focus-visible{outline:2px solid var(--blue);outline-offset:8px}
 .is-coverflow .reel{position:absolute;top:0;left:50%;width:var(--cf-w);margin-left:calc(var(--cf-w) / -2);
@@ -316,6 +316,8 @@ body.menu-open .wa-float,body.lb-open .wa-float{opacity:0;pointer-events:none}
   .works__grid .work:nth-child(even){margin-top:0}
   .reels__track{grid-auto-columns:62vw;gap:12px;margin-right:-20px;padding-right:20px}
   .reels__btn{width:40px;height:40px}
+  .reels__track.is-coverflow{--cf-w:min(58vw,300px);height:calc(var(--cf-w) * 16 / 9 + 70px)}
+  .is-coverflow .reel__title{font-size:13px}
   .lightbox__inner{flex-direction:column;gap:14px}
   .lightbox.is-vertical video{height:min(72svh,640px)}
   .lightbox__cap{max-width:100%;text-align:center}

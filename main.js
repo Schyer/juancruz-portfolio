@@ -626,7 +626,8 @@
     const v = $("video", w), cur = $(".work__cursor", w), media = $(".work__media", w);
     w.addEventListener("click", () =>
       openVideo(w.dataset.video, w.classList.contains("reel") ? { title: w.dataset.title, text: w.dataset.text } : null));
-    if (isTouch) return vio.observe(w);
+    // en celular los trabajos se reproducen al verse; los reels los maneja el carrusel (solo el del centro)
+    if (isTouch) { if (!w.classList.contains("reel")) vio.observe(w); return; }
     w.addEventListener("mouseenter", () => { v.play().catch(() => {}); const t = $(".work__title", w); if (t) scramble(t, 600); });
     w.addEventListener("mouseleave", () => v.pause());
     media.addEventListener("mousemove", (e) => {
@@ -675,15 +676,15 @@
   })();
 
   /* ---------------- REELS (carrusel) ----------------
-     Compu: "coverflow" (el reel activo grande al centro y los demás más chicos detrás, a los costados).
-     Celular: carrusel que se desliza con el dedo. */
+     "Coverflow" en compu y celular: el reel activo grande al centro y los demás más chicos detrás, a los costados.
+     En celular se cambia deslizando con el dedo. */
   (() => {
     const track = $("#reelsTrack");
     if (!track || !verticals.length) return;
     const cards = $$(".reel", track);
     const prev = $("#reelsPrev"), next = $("#reelsNext"), count = $("#reelsCount"), nav = $(".reels__nav");
     const pad = (n) => String(n).padStart(2, "0");
-    const wantsCoverflow = () => innerWidth > 900 && !isTouch;
+    const wantsCoverflow = () => true;
     let cover = false, active = 0;
 
     /* --- modo coverflow --- */
@@ -753,7 +754,7 @@
     // arrastrar con el mouse: en coverflow pasa al siguiente/anterior; en carrusel mueve la fila
     let down = false, startX = 0, startLeft = 0, moved = false;
     track.addEventListener("pointerdown", (e) => {
-      if (e.pointerType !== "mouse") return;
+      if (e.pointerType !== "mouse" && !cover) return; // en celular el coverflow también se maneja deslizando
       down = true; moved = false; startX = e.clientX; startLeft = track.scrollLeft;
     });
     addEventListener("pointermove", (e) => {
@@ -762,6 +763,7 @@
       if (Math.abs(dx) > 6 && !moved) { moved = true; track.classList.add("is-dragging"); }
       if (moved && !cover) track.scrollLeft = startLeft - dx;
     });
+    addEventListener("pointercancel", () => { down = false; track.classList.remove("is-dragging"); });
     addEventListener("pointerup", (e) => {
       if (!down) return;
       down = false;
