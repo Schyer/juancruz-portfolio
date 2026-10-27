@@ -130,21 +130,23 @@
   if (S.showreel.poster) srv.poster = S.showreel.poster;
   $("#showreelLabel").textContent = S.showreel.label;
 
-  // Trabajos
-  // Formato de cada video: los verticales (reels) se muestran angostos y sin recortar
+  // Trabajos: los horizontales van en la grilla y los verticales en el carrusel de Reels
   const RATIOS = { "16/9": 16 / 9, "1/1": 1, "4/5": 4 / 5, "9/16": 9 / 16 };
-  $("#works").innerHTML = S.works
-    .map(
-      (w, i) => {
-        const ratio = RATIOS[w.ratio] ? w.ratio : "16/9";
-        const vertical = RATIOS[ratio] < 1;
-        return `
-    <article class="work${vertical ? " is-vertical" : ""}" data-video="${esc(w.video)}" style="--ar:${RATIOS[ratio]}">
+  const ratioOf = (w) => (RATIOS[w.ratio] ? w.ratio : "16/9");
+  const horizontals = S.works.filter((w) => RATIOS[ratioOf(w)] >= 1);
+  const verticals = S.works.filter((w) => RATIOS[ratioOf(w)] < 1);
+  const mediaHTML = (w, ratio) => `
       <div class="work__media" style="aspect-ratio:${ratio}">
         ${w.poster ? `<img src="${esc(w.poster)}" alt="${esc(w.title)}" loading="lazy">` : ""}
         <video src="${esc(w.video)}${w.poster ? "" : "#t=0.5"}" muted loop playsinline preload="${w.poster ? "none" : "metadata"}" ${w.poster ? "" : 'style="opacity:1"'}></video>
         <span class="work__cursor">Ver video ↗</span>
-      </div>
+      </div>`;
+
+  $("#works").innerHTML = horizontals
+    .map(
+      (w) => `
+    <article class="work" data-video="${esc(w.video)}">
+      ${mediaHTML(w, ratioOf(w))}
       <div class="work__info">
         <div>
           <h3 class="work__title" data-scramble>${esc(w.title)}</h3>
@@ -153,10 +155,25 @@
         </div>
         <span class="work__year">${esc(w.year || "")}</span>
       </div>
-    </article>`;
-      }
+    </article>`
     )
     .join("");
+  if (!horizontals.length) $("#trabajos").hidden = true;
+
+  // Reels: solo título y año, para que el carrusel quede limpio (la descripción aparece al abrirlo)
+  $("#reelsTrack").innerHTML = verticals
+    .map(
+      (w, i) => `
+    <article class="work reel" data-video="${esc(w.video)}" data-title="${esc(w.title)}" data-text="${esc(w.text || "")}">
+      ${mediaHTML(w, "9/16")}
+      <div class="reel__info">
+        <span class="reel__num">${String(i + 1).padStart(2, "0")}</span>
+        <h3 class="reel__title">${esc(w.title)}</h3>
+      </div>
+    </article>`
+    )
+    .join("");
+  if (verticals.length) $("#reels").hidden = false;
 
   // Proceso
   $("#process").innerHTML = S.process
@@ -549,8 +566,13 @@
 
   /* ---------------- LIGHTBOX ---------------- */
   const lb = $("#lightbox"), lbv = $("#lbVideo");
-  function openVideo(src) {
+  function openVideo(src, info) {
     lbv.src = src; lbv.muted = false;
+    // los reels se abren en vertical, con su título y descripción al lado
+    const cap = $("#lbCap");
+    lb.classList.toggle("is-vertical", !!info);
+    cap.hidden = !info;
+    if (info) { $("h3", cap).textContent = info.title; $("p", cap).textContent = info.text; }
     document.body.classList.add("lb-open");
     lb.classList.add("open"); lb.setAttribute("aria-hidden", "false");
     lbv.play().catch(() => {});
@@ -568,15 +590,61 @@
   /* ---------------- TRABAJOS ---------------- */
   $$(".work").forEach((w) => {
     const v = $("video", w), cur = $(".work__cursor", w), media = $(".work__media", w);
-    w.addEventListener("click", () => openVideo(w.dataset.video));
+    w.addEventListener("click", () =>
+      openVideo(w.dataset.video, w.classList.contains("reel") ? { title: w.dataset.title, text: w.dataset.text } : null));
     if (isTouch) return vio.observe(w);
-    w.addEventListener("mouseenter", () => { v.play().catch(() => {}); scramble($(".work__title", w), 600); });
+    w.addEventListener("mouseenter", () => { v.play().catch(() => {}); const t = $(".work__title", w); if (t) scramble(t, 600); });
     w.addEventListener("mouseleave", () => v.pause());
     media.addEventListener("mousemove", (e) => {
       const r = media.getBoundingClientRect();
       cur.style.transform = `translate(${e.clientX - r.left + 14}px, ${e.clientY - r.top + 14}px)`;
     });
   });
+
+  /* ---------------- REELS (carrusel) ---------------- */
+  (() => {
+    const track = $("#reelsTrack");
+    if (!track || !verticals.length) return;
+    const cards = $$(".reel", track);
+    const prev = $("#reelsPrev"), next = $("#reelsNext"), count = $("#reelsCount");
+    const step = () => (cards[1] ? cards[1].offsetLeft - cards[0].offsetLeft : track.clientWidth);
+    const update = () => {
+      const i = Math.round(track.scrollLeft / step());
+      count.textContent = `${String(Math.min(i + 1, cards.length)).padStart(2, "0")} / ${String(cards.length).padStart(2, "0")}`;
+      prev.disabled = track.scrollLeft <= 4;
+      next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+      $(".reels__nav").hidden = track.scrollWidth <= track.clientWidth + 4; // si entran todos, sin flechas
+    };
+    prev.onclick = () => track.scrollBy({ left: -step(), behavior: reduce ? "auto" : "smooth" });
+    next.onclick = () => track.scrollBy({ left: step(), behavior: reduce ? "auto" : "smooth" });
+    track.addEventListener("scroll", () => requestAnimationFrame(update), { passive: true });
+    addEventListener("resize", update);
+    update();
+
+    // arrastrar con el mouse (en celular se desliza con el dedo de forma nativa)
+    let down = false, startX = 0, startLeft = 0, moved = false;
+    track.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "mouse") return;
+      down = true; moved = false; startX = e.clientX; startLeft = track.scrollLeft;
+    });
+    addEventListener("pointermove", (e) => {
+      if (!down) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 5 && !moved) { moved = true; track.classList.add("is-dragging"); }
+      if (moved) track.scrollLeft = startLeft - dx;
+    });
+    addEventListener("pointerup", () => {
+      if (!down) return;
+      down = false;
+      if (moved) {
+        track.classList.remove("is-dragging");
+        // al soltar, se acomoda en el reel más cercano
+        track.scrollTo({ left: Math.round(track.scrollLeft / step()) * step(), behavior: "smooth" });
+      }
+    });
+    // si se arrastró, no abrir el video
+    track.addEventListener("click", (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+  })();
 
   /* ---------------- PROCESO (acordeón) ---------------- */
   $$(".step").forEach((s) => {

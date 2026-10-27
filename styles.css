@@ -136,12 +136,30 @@ body.menu-open .menu a{opacity:1;transform:none}
 .h2{font-size:clamp(30px,3.4vw,48px);font-weight:700;letter-spacing:-.045em;line-height:1.02}
 .sec-head__meta{font-family:var(--mono);font-size:13px;color:var(--muted)}
 .works{padding-bottom:16vh}
-/* Trabajos: los horizontales ocupan media fila; los verticales (reels) van angostos,
-   con una altura máxima para que no ocupen toda la pantalla */
-.works__grid{display:flex;flex-wrap:wrap;gap:48px 18px;align-items:center;--reel-h:min(72vh,640px)}
-.work{cursor:pointer;flex:1 1 calc(50% - 9px);min-width:0;max-width:66%}
-.work.is-vertical{flex:0 0 auto;width:calc(var(--reel-h) * var(--ar));max-width:100%}
-.work.is-vertical .work__info{padding-left:0;padding-right:0}
+.works__grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.works__grid .work:nth-child(even){margin-top:14vh}
+.work{cursor:pointer;min-width:0}
+
+/* ---------- REELS (carrusel de videos verticales) ---------- */
+.reels{padding-bottom:16vh}
+.reels__head{justify-content:space-between;align-items:flex-end}
+.reels__title{display:flex;align-items:baseline;gap:20px;flex-wrap:wrap}
+.reels__nav{display:flex;align-items:center;gap:8px}
+.reels__count{font-family:var(--mono);font-size:12px;color:var(--muted);margin-right:10px;font-variant-numeric:tabular-nums}
+.reels__btn{width:46px;height:46px;border:1px solid var(--line);font-size:18px;display:grid;place-items:center;transition:background .3s,color .3s,border-color .3s,opacity .3s}
+.reels__btn:hover:not(:disabled){background:var(--blue);border-color:var(--blue);color:var(--on-accent)}
+.reels__btn:disabled{opacity:.3;cursor:default}
+.reels__track{display:grid;grid-auto-flow:column;grid-auto-columns:clamp(210px,18vw,280px);gap:18px;overflow-x:auto;overscroll-behavior-x:contain;
+  scroll-snap-type:x mandatory;scrollbar-width:none;cursor:grab;
+  margin-right:calc(-1 * (var(--rail) + 56px));padding-right:calc(var(--rail) + 56px)}
+.reels__track::-webkit-scrollbar{display:none}
+.reels__track.is-dragging{scroll-snap-type:none;cursor:grabbing;user-select:none}
+.reels__track.is-dragging .work__media{pointer-events:none}
+.reel{scroll-snap-align:start}
+.reel .work__media img{-webkit-user-drag:none}
+.reel__info{display:flex;gap:10px;align-items:baseline;padding-top:12px}
+.reel__num{font-family:var(--mono);font-size:11px;color:var(--blue)}
+.reel__title{font-size:14px;font-weight:600;letter-spacing:-.01em;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .work__media{position:relative;overflow:hidden;background:#111}
 .work__media img,.work__media video{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
 .work__media video{position:absolute;inset:0;opacity:0;transition:opacity .5s,transform 1.2s var(--ease)}
@@ -215,9 +233,14 @@ body.menu-open .wa-float,body.lb-open .wa-float{opacity:0;pointer-events:none}
 .footer{padding-right:calc(var(--rail) + 56px + 84px)}
 
 /* ---------- LIGHTBOX ---------- */
-.lightbox{position:fixed;inset:0;z-index:90;background:rgba(11,13,23,.92);display:grid;place-items:center;padding:6vw;opacity:0;pointer-events:none;transition:opacity .4s}
+.lightbox{position:fixed;inset:0;z-index:90;background:rgba(11,13,23,.96);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:grid;place-items:center;padding:6vw;opacity:0;pointer-events:none;transition:opacity .4s}
 .lightbox.open{opacity:1;pointer-events:auto}
+.lightbox__inner{width:100%;display:flex;justify-content:center;align-items:center;gap:32px}
 .lightbox video{width:100%;max-height:84vh;background:#000}
+.lightbox.is-vertical video{width:auto;height:min(84vh,780px);max-width:100%}
+.lightbox__cap{max-width:340px;color:var(--on-accent)}
+.lightbox__cap h3{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lightbox__cap p{margin-top:10px;font-size:14px;line-height:1.5;opacity:.75}
 .lightbox__close{position:absolute;top:22px;right:26px;color:var(--on-accent);font-family:var(--mono);font-size:13px}
 
 /* ---------- RESPONSIVE ---------- */
@@ -233,9 +256,14 @@ body.menu-open .wa-float,body.lb-open .wa-float{opacity:0;pointer-events:none}
   .svc{grid-template-columns:1fr auto;gap:18px}
   .svc__tags{grid-column:1/-1;order:3}
   .svc .ascii{font-size:5.5px;min-width:0}
-  .works__grid{gap:40px;--reel-h:min(68svh,560px)}
-  .work{flex-basis:100%;max-width:100%}
-  .work.is-vertical{margin:0 auto}
+  .works__grid{grid-template-columns:1fr;gap:40px}
+  .works__grid .work:nth-child(even){margin-top:0}
+  .reels__track{grid-auto-columns:62vw;gap:12px;margin-right:-20px;padding-right:20px}
+  .reels__btn{width:40px;height:40px}
+  .lightbox__inner{flex-direction:column;gap:14px}
+  .lightbox.is-vertical video{height:min(72svh,640px)}
+  .lightbox__cap{max-width:100%;text-align:center}
+  .lightbox__cap p{display:none}
   .work__info{padding-left:0;padding-right:0}
   .step__head{grid-template-columns:44px 1fr 24px}
   .step__meta{display:none}

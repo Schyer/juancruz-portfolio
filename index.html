@@ -130,6 +130,22 @@
       <div class="works__grid" id="works"></div>
     </section>
 
+    <!-- REELS (videos verticales, en carrusel) -->
+    <section class="reels wrap" id="reels" hidden>
+      <div class="sec-head reels__head">
+        <div class="reels__title">
+          <h2 class="h2" data-scramble>Reels.</h2>
+          <span class="sec-head__meta" data-scramble>(Formato vertical)</span>
+        </div>
+        <div class="reels__nav">
+          <span class="reels__count" id="reelsCount" aria-live="polite"></span>
+          <button class="reels__btn" id="reelsPrev" aria-label="Reel anterior">←</button>
+          <button class="reels__btn" id="reelsNext" aria-label="Reel siguiente">→</button>
+        </div>
+      </div>
+      <div class="reels__track" id="reelsTrack"></div>
+    </section>
+
     <!-- PROCESO -->
     <section class="process wrap" id="proceso">
       <h2 class="h2 reveal-words" id="processTitle"></h2>
@@ -172,7 +188,10 @@
   <!-- Lightbox de video -->
   <div class="lightbox" id="lightbox" aria-hidden="true">
     <button class="lightbox__close" id="lbClose" aria-label="Cerrar">Cerrar ✕</button>
-    <video id="lbVideo" controls playsinline></video>
+    <div class="lightbox__inner">
+      <video id="lbVideo" controls playsinline></video>
+      <div class="lightbox__cap" id="lbCap" hidden><h3></h3><p></p></div>
+    </div>
   </div>
 
   <script src="content.js"></script>
