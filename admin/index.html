@@ -73,7 +73,7 @@
       <section class="block">
         <div class="block__head">
           <h2>Colores</h2>
-          <p>Cambian los acentos de todo el sitio: el nombre, títulos, botones, menú y pantalla de carga.</p>
+          <p>Los del tema claro cambian los acentos del sitio (nombre, títulos, botones, menú). Los del tema oscuro se usan cuando el visitante toca el botón de tema oscuro.</p>
         </div>
         <div class="colors">
           <div class="colors__pickers">
@@ -90,6 +90,21 @@
               <div><label for="colLight">Claro</label><input type="text" class="hex" data-for="colLight" maxlength="7" aria-label="Código del color claro"><p class="small">Final del degradé y detalles.</p></div>
             </div>
             <p class="colors__warn" id="colWarn" hidden>Este color principal se lee poco sobre el fondo claro. Probá uno más oscuro o más intenso.</p>
+
+            <h3 class="colors__sub">Tema oscuro</h3>
+            <div class="picker">
+              <input type="color" id="colDarkBg">
+              <div><label for="colDarkBg">Fondo</label><input type="text" class="hex" data-for="colDarkBg" maxlength="7" aria-label="Código del fondo oscuro"><p class="small">Fondo de toda la página.</p></div>
+            </div>
+            <div class="picker">
+              <input type="color" id="colDarkInk">
+              <div><label for="colDarkInk">Texto</label><input type="text" class="hex" data-for="colDarkInk" maxlength="7" aria-label="Código del texto en tema oscuro"><p class="small">Títulos y textos.</p></div>
+            </div>
+            <div class="picker">
+              <input type="color" id="colDarkAccent">
+              <div><label for="colDarkAccent">Acento</label><input type="text" class="hex" data-for="colDarkAccent" maxlength="7" aria-label="Código del acento en tema oscuro"><p class="small">Nombre, links, etiquetas y botones.</p></div>
+            </div>
+            <p class="colors__warn" id="colWarnDark" hidden></p>
             <button type="button" class="btn btn--ghost" id="colReset">Volver a los azules originales</button>
           </div>
           <div class="preview" id="colPreview" aria-label="Vista previa de los colores">
@@ -98,6 +113,12 @@
             <p class="preview__name">juan cruz</p>
             <div class="preview__row"><span class="preview__chip">Edición</span><span class="preview__chip">Reels</span><span class="preview__btn">Ver trabajos</span></div>
             <div class="preview__menu">Menú</div>
+            <div class="preview preview--dark" id="colPreviewDark" aria-label="Vista previa del tema oscuro">
+              <span class="preview__label">Tema oscuro</span>
+              <p class="preview__title">Contenido que se planifica,<br><span>se edita y se mide.</span></p>
+              <p class="preview__name">juan cruz</p>
+              <div class="preview__row"><span class="preview__chip">Edición</span><span class="preview__chip">Reels</span><span class="preview__btn">Ver trabajos</span></div>
+            </div>
           </div>
         </div>
       </section>

@@ -25,7 +25,12 @@ function clean(input) {
   if (input.theme) {
     const hex = (v) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v.toUpperCase() : null);
     const t = { primary: hex(input.theme.primary), deep: hex(input.theme.deep), light: hex(input.theme.light) };
-    if (t.primary && t.deep && t.light) out.theme = t;
+    if (t.primary && t.deep && t.light) {
+      out.theme = t;
+      // colores del tema oscuro (opcionales)
+      const dark = { darkBg: hex(input.theme.darkBg), darkInk: hex(input.theme.darkInk), darkAccent: hex(input.theme.darkAccent) };
+      if (dark.darkBg && dark.darkInk && dark.darkAccent) Object.assign(out.theme, dark);
+    }
   }
   if (input.contact) {
     const email = str(input.contact.email, 120);

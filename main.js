@@ -38,20 +38,36 @@
   /* ---------------- COLORES (desde el panel) ---------------- */
   const hexToRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const mix = (a, b, t) => "#" + hexToRgb(a).map((v, i) => Math.round(v + (hexToRgb(b)[i] - v) * t).toString(16).padStart(2, "0")).join("");
+  const isHexColor = (v) => /^#[0-9a-f]{6}$/i.test(v || "");
+  const pick = (v, d) => (isHexColor(v) ? v : d);
   const THEME = {
-    primary: S.theme?.primary || "#0404E2",
-    deep: S.theme?.deep || "#0303B5",
-    light: S.theme?.light || "#4040FB"
+    primary: pick(S.theme?.primary, "#0404E2"),
+    deep: pick(S.theme?.deep, "#0303B5"),
+    light: pick(S.theme?.light, "#4040FB"),
+    darkBg: pick(S.theme?.darkBg, "#05052E"),
+    darkInk: pick(S.theme?.darkInk, "#F5F5FA"),
+    darkAccent: pick(S.theme?.darkAccent, "#7B7BFF")
+  };
+  const lum = (hex) => {
+    const c = hexToRgb(hex).map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   };
   THEME.soft = mix(THEME.primary, "#F3F3EF", 0.88);
+  // texto sobre el acento oscuro: oscuro si el acento es claro, blanco si es intenso
+  THEME.darkOnAccent = lum(THEME.darkAccent) > 0.35 ? THEME.darkBg : "#FFFFFF";
+  const isDark = () => document.documentElement.getAttribute("data-theme") === "dark";
+  const accentNow = () => (isDark() ? THEME.darkAccent : THEME.primary);
   {
     const r = document.documentElement.style;
-    r.setProperty("--blue", THEME.primary);
-    r.setProperty("--blue-2", THEME.primary);
-    r.setProperty("--blue-deep", THEME.deep);
-    r.setProperty("--blue-light", THEME.light);
-    r.setProperty("--blue-soft", THEME.soft);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME.primary);
+    r.setProperty("--c-primary", THEME.primary);
+    r.setProperty("--c-deep", THEME.deep);
+    r.setProperty("--c-light", THEME.light);
+    r.setProperty("--c-soft", THEME.soft);
+    r.setProperty("--dk-bg", THEME.darkBg);
+    r.setProperty("--dk-ink", THEME.darkInk);
+    r.setProperty("--dk-accent", THEME.darkAccent);
+    r.setProperty("--dk-on-accent", THEME.darkOnAccent);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", isDark() ? THEME.darkBg : THEME.primary);
     // el color va en la dirección del favicon para que el navegador no muestre uno viejo guardado
     const v = THEME.primary.slice(1);
     document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]').forEach((l) => {
@@ -452,12 +468,12 @@
         if (tint > 0.01) {
           c.globalCompositeOperation = "lighten";
           c.globalAlpha = tint;
-          c.fillStyle = THEME.primary;
+          c.fillStyle = accentNow();
           c.fillRect(0, 0, W, H);
           c.globalAlpha = 1;
         }
       } else {
-        c.fillStyle = THEME.primary;
+        c.fillStyle = accentNow();
         c.fillRect(0, 0, W, H);
       }
       // 2) recorte con las letras (que se van formando)
@@ -600,6 +616,35 @@
       cur.style.transform = `translate(${e.clientX - r.left + 14}px, ${e.clientY - r.top + 14}px)`;
     });
   });
+
+  /* ---------------- TEMA CLARO / OSCURO ---------------- */
+  (() => {
+    const btns = $$("[data-theme-toggle]");
+    const sync = () => btns.forEach((b) => {
+      b.setAttribute("aria-pressed", isDark());
+      b.setAttribute("aria-label", isDark() ? "Cambiar a tema claro" : "Cambiar a tema oscuro");
+    });
+    const apply = (dark) => {
+      if (dark) document.documentElement.setAttribute("data-theme", "dark");
+      else document.documentElement.removeAttribute("data-theme");
+      try { localStorage.setItem("jc-mode", dark ? "dark" : "light"); } catch (e) {}
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? THEME.darkBg : THEME.primary);
+      sync();
+    };
+    btns.forEach((b) => b.addEventListener("click", (e) => {
+      const dark = !isDark();
+      // transición circular desde el botón, donde el navegador la soporta
+      if (document.startViewTransition && !reduce) {
+        const r = b.getBoundingClientRect();
+        const x = r.left + r.width / 2, y = r.top + r.height / 2;
+        const rad = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+        const root = document.documentElement.style;
+        root.setProperty("--tx", x + "px"); root.setProperty("--ty", y + "px"); root.setProperty("--tr", rad + "px");
+        document.startViewTransition(() => apply(dark));
+      } else apply(dark);
+    }));
+    sync();
+  })();
 
   /* ---------------- REELS (carrusel) ---------------- */
   (() => {

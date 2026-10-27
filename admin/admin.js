@@ -6,7 +6,7 @@ const BLOB_CLIENT = "https://esm.sh/@vercel/blob@2.8.0/client";
 let password = "";
 let storage = "local";
 let state = { hero: {}, showreel: {}, works: [], contact: {}, theme: {} };
-const DEFAULT_THEME = { primary: "#0404E2", deep: "#0303B5", light: "#4040FB" };
+const DEFAULT_THEME = { primary: "#0404E2", deep: "#0303B5", light: "#4040FB", darkBg: "#05052E", darkInk: "#F5F5FA", darkAccent: "#7B7BFF" };
 let dirty = false;
 let uploading = 0;
 const sessionUploads = new Set(); // archivos subidos en esta sesión (para limpiar los que no se usen)
@@ -141,7 +141,7 @@ function refreshLogo() {
   const l = document.querySelector('link[rel="icon"]');
   if (l) l.href = `/api/favicon?v=${v}`;
 }
-const COLOR_KEYS = { colPrimary: "primary", colDeep: "deep", colLight: "light" };
+const COLOR_KEYS = { colPrimary: "primary", colDeep: "deep", colLight: "light", colDarkBg: "darkBg", colDarkInk: "darkInk", colDarkAccent: "darkAccent" };
 const isHex = (v) => /^#[0-9a-f]{6}$/i.test(v);
 function luminance(hex) {
   const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
@@ -159,6 +159,19 @@ function renderColors() {
   // contraste del principal contra el fondo del sitio (#F3F3EF)
   const ratio = (luminance("#F3F3EF") + 0.05) / (luminance(state.theme.primary) + 0.05);
   $("#colWarn").hidden = ratio >= 3;
+  // tema oscuro
+  const t = state.theme;
+  const dv = $("#colPreviewDark").style;
+  dv.setProperty("--bgd", t.darkBg);
+  dv.setProperty("--ink-d", t.darkInk);
+  dv.setProperty("--acc", t.darkAccent);
+  dv.setProperty("--on-acc", luminance(t.darkAccent) > 0.35 ? t.darkBg : "#FFFFFF");
+  const contrast = (a, b) => { const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+  const warns = [];
+  if (contrast(t.darkInk, t.darkBg) < 4.5) warns.push("El texto se lee poco sobre el fondo oscuro.");
+  if (contrast(t.darkAccent, t.darkBg) < 3) warns.push("El acento se lee poco sobre el fondo oscuro. Probá uno más claro.");
+  $("#colWarnDark").textContent = warns.join(" ");
+  $("#colWarnDark").hidden = !warns.length;
 }
 Object.entries(COLOR_KEYS).forEach(([id, key]) => {
   $("#" + id).addEventListener("input", (e) => { state.theme[key] = e.target.value.toUpperCase(); renderColors(); setDirty(); });

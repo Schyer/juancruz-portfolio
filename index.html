@@ -35,12 +35,15 @@
     // Aplica los colores elegidos en el panel antes de dibujar la página (evita un parpadeo del azul original)
     try {
       var t = JSON.parse(localStorage.getItem("jc-theme") || "null");
+      var r = document.documentElement.style;
       if (t && t.primary) {
-        var r = document.documentElement.style;
-        r.setProperty("--blue", t.primary); r.setProperty("--blue-2", t.primary);
-        r.setProperty("--blue-deep", t.deep); r.setProperty("--blue-light", t.light);
-        if (t.soft) r.setProperty("--blue-soft", t.soft);
+        r.setProperty("--c-primary", t.primary);
+        r.setProperty("--c-deep", t.deep); r.setProperty("--c-light", t.light);
+        if (t.soft) r.setProperty("--c-soft", t.soft);
+        if (t.darkBg) { r.setProperty("--dk-bg", t.darkBg); r.setProperty("--dk-ink", t.darkInk); r.setProperty("--dk-accent", t.darkAccent); r.setProperty("--dk-on-accent", t.darkOnAccent); }
       }
+      // tema claro u oscuro elegido por el visitante
+      if (localStorage.getItem("jc-mode") === "dark") document.documentElement.setAttribute("data-theme", "dark");
     } catch (e) {}
   </script>
 </head>
@@ -55,13 +58,17 @@
   </aside>
   <aside class="rail rail--right">
     <button class="menu-btn" id="menuBtn" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span></button>
+    <button class="theme-btn" data-theme-toggle aria-label="Cambiar a tema oscuro" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z"/></svg></button>
     <span class="rail__brand">© <span id="railName">juan cruz</span></span>
   </aside>
 
   <!-- Barra superior (mobile) -->
   <header class="topbar">
     <span class="topbar__brand">© juan cruz</span>
-    <button class="menu-btn menu-btn--top" id="menuBtnTop" aria-label="Abrir menú"><span></span><span></span></button>
+    <div class="topbar__actions">
+      <button class="theme-btn" data-theme-toggle aria-label="Cambiar a tema oscuro" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z"/></svg></button>
+      <button class="menu-btn menu-btn--top" id="menuBtnTop" aria-label="Abrir menú"><span></span><span></span></button>
+    </div>
   </header>
 
   <!-- Menú -->
