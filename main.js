@@ -590,13 +590,27 @@
   }, { threshold: 0.35 });
 
   // Videos: preview del showreel en loop mientras se ve; en mobile los trabajos se reproducen solos
+  // Para cuidar los datos del visitante, los videos de preview no se descargan ni arrancan solos
+  // hasta que la persona interactúa con la página (toque, click, tecla o scroll con rueda).
+  let interacted = false;
+  const afterInteract = [];
+  ["pointerdown", "touchstart", "keydown", "wheel"].forEach((ev) =>
+    addEventListener(ev, () => {
+      if (interacted) return;
+      interacted = true;
+      afterInteract.forEach((f) => f());
+    }, { passive: true }));
   const vio = new IntersectionObserver((ents) => {
     ents.forEach((e) => {
       const v = e.target.tagName === "VIDEO" ? e.target : $("video", e.target);
-      if (e.isIntersecting) { v.play().catch(() => {}); e.target.classList?.add("playing"); }
-      else { v.pause(); e.target.classList?.remove("playing"); }
+      if (e.isIntersecting) { e.target.dataset.seen = "1"; if (interacted) { v.play().catch(() => {}); e.target.classList?.add("playing"); } }
+      else { delete e.target.dataset.seen; v.pause(); e.target.classList?.remove("playing"); }
     });
   }, { threshold: 0.5 });
+  afterInteract.push(() => $$("[data-seen]").forEach((el) => {
+    const v = el.tagName === "VIDEO" ? el : $("video", el);
+    v.play().catch(() => {}); el.classList?.add("playing");
+  }));
 
   /* ---------------- LIGHTBOX ---------------- */
   const lb = $("#lightbox"), lbv = $("#lbVideo");
@@ -709,13 +723,14 @@
         c.classList.toggle("is-active", d === 0);
         c.setAttribute("aria-hidden", a > 2 ? "true" : "false");
         const v = $("video", c);
-        if (d === 0 && inView) v.play().catch(() => {}); else v.pause();
+        if (d === 0 && inView && interacted) v.play().catch(() => {}); else v.pause();
       });
       count.textContent = `${pad(active + 1)} / ${pad(cards.length)}`;
       prev.disabled = active === 0;
       next.disabled = active === cards.length - 1;
       nav.hidden = cards.length < 2;
     };
+    afterInteract.push(() => layout());
     const go = (i) => { active = Math.max(0, Math.min(cards.length - 1, i)); layout(); };
 
     /* --- modo carrusel (celular) --- */

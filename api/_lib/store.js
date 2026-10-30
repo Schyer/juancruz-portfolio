@@ -1,13 +1,14 @@
 // Almacenamiento del contenido y los archivos que sube Juan.
-// - En Vercel: usa Vercel Blob (necesita la variable BLOB_READ_WRITE_TOKEN, que se crea sola al conectar el Blob store).
+// - En Vercel: usa Cloudflare R2 (variables R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET y R2_PUBLIC_URL).
 // - En tu compu (npm run dev): guarda todo en la carpeta .local-blob para poder probar sin cuenta.
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { r2Configured, publicBase, getObject, putObject, deleteObject } from "./r2.js";
 
-export const mode = process.env.BLOB_READ_WRITE_TOKEN ? "blob" : "local";
+export const mode = r2Configured() ? "r2" : "local";
 const LOCAL_DIR = path.join(process.cwd(), ".local-blob");
-const KEEP_VERSIONS = 3; // versiones anteriores del contenido que se guardan por las dudas
+const CONTENT_KEY = "data/content.json";
 
 export async function readContent() {
   if (mode === "local") {
@@ -17,12 +18,8 @@ export async function readContent() {
       return null;
     }
   }
-  const { list } = await import("@vercel/blob");
-  const { blobs } = await list({ prefix: "data/content-" });
-  if (!blobs.length) return null;
-  blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  const r = await fetch(blobs[0].url, { cache: "no-store" });
-  return r.ok ? r.json() : null;
+  const txt = await getObject(CONTENT_KEY);
+  return txt ? JSON.parse(txt) : null;
 }
 
 export async function writeContent(data) {
@@ -32,24 +29,14 @@ export async function writeContent(data) {
     await fs.writeFile(path.join(LOCAL_DIR, "content.json"), body);
     return;
   }
-  const { put, list, del } = await import("@vercel/blob");
-  // Cada guardado es un archivo nuevo (evita el caché de la CDN); se borran los más viejos
-  await put(`data/content-${Date.now()}.json`, body, {
-    access: "public",
-    contentType: "application/json",
-    addRandomSuffix: true
-  });
-  const { blobs } = await list({ prefix: "data/content-" });
-  blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  const old = blobs.slice(KEEP_VERSIONS).map((b) => b.url);
-  if (old.length) await del(old);
+  await putObject(CONTENT_KEY, body, "application/json");
 }
 
 // Solo se borran archivos subidos desde el panel (carpeta uploads/), nunca los del sitio
 export function isUploadedFile(url) {
   if (typeof url !== "string") return false;
   if (mode === "local") return url.startsWith("/.local-blob/uploads/");
-  return /^https:\/\/[a-z0-9.-]+\.blob\.vercel-storage\.com\/uploads\//i.test(url);
+  return url.startsWith(publicBase() + "/uploads/");
 }
 
 export async function deleteFiles(urls) {
@@ -61,8 +48,15 @@ export async function deleteFiles(urls) {
     );
     return;
   }
-  const { del } = await import("@vercel/blob");
-  await del(targets);
+  await Promise.all(
+    targets.map((u) => deleteObject(decodeURIComponent(u.slice(publicBase().length + 1))).catch(() => {}))
+  );
+}
+
+// Nombre único para un archivo nuevo (carpeta uploads/)
+export function newUploadKey(filename) {
+  const safe = String(filename || "archivo").toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(-70) || "archivo";
+  return `uploads/${Date.now()}-${crypto.randomBytes(4).toString("hex")}-${safe}`;
 }
 
 // Solo para modo local: guarda el archivo y devuelve su URL

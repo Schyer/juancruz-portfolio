@@ -1,7 +1,7 @@
 // Panel de contenido — Juan Cruz
 const $ = (s, r = document) => r.querySelector(s);
 const MAX_MB = 500;
-const BLOB_CLIENT = "https://esm.sh/@vercel/blob@2.8.0/client";
+const MEDIABUNNY = "https://cdn.jsdelivr.net/npm/mediabunny@1.63.0/dist/bundles/mediabunny.min.mjs";
 
 let password = "";
 let storage = "local";
@@ -292,34 +292,71 @@ function makePoster(file) {
 
 const safeName = (n) => n.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "").slice(-60) || "archivo";
 
+function putWithProgress(url, file, headers, onProgress) {
+  return new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open(headers.method || "PUT", url);
+    Object.entries(headers.set || {}).forEach(([k, v]) => x.setRequestHeader(k, v));
+    x.upload.onprogress = (e) => e.lengthComputable && onProgress((e.loaded / e.total) * 100);
+    x.onload = () => {
+      let d = {};
+      try { d = JSON.parse(x.responseText); } catch {}
+      x.status < 300 ? resolve(d) : reject(new Error(d.error || "No se pudo subir el archivo."));
+    };
+    x.onerror = () => reject(new Error("Se cortó la conexión mientras se subía el archivo."));
+    x.send(file);
+  });
+}
+
 async function uploadFile(file, name, onProgress) {
   if (storage === "local") {
-    return new Promise((resolve, reject) => {
-      const x = new XMLHttpRequest();
-      x.open("POST", "/api/upload");
-      x.setRequestHeader("authorization", `Bearer ${password}`);
-      x.setRequestHeader("content-type", file.type || "application/octet-stream");
-      x.setRequestHeader("x-filename", encodeURIComponent(name));
-      x.upload.onprogress = (e) => e.lengthComputable && onProgress((e.loaded / e.total) * 100);
-      x.onload = () => {
-        let d = {};
-        try { d = JSON.parse(x.responseText); } catch {}
-        x.status < 300 && d.url ? resolve(d.url) : reject(new Error(d.error || "No se pudo subir el archivo."));
-      };
-      x.onerror = () => reject(new Error("Se cortó la conexión mientras se subía el archivo."));
-      x.send(file);
-    });
+    const d = await putWithProgress("/api/upload", file, {
+      method: "POST",
+      set: { authorization: `Bearer ${password}`, "content-type": file.type || "application/octet-stream", "x-filename": encodeURIComponent(name) }
+    }, onProgress);
+    if (!d.url) throw new Error("No se pudo subir el archivo.");
+    return d.url;
   }
-  const { upload } = await import(BLOB_CLIENT);
-  const res = await upload(`uploads/${Date.now()}-${name}`, file, {
-    access: "public",
-    handleUploadUrl: "/api/upload",
-    headers: { authorization: `Bearer ${password}` },
-    contentType: file.type,
-    multipart: file.size > 20 * 1024 * 1024,
-    onUploadProgress: ({ percentage }) => onProgress(percentage)
+  // Cloudflare R2: se pide un link temporal y el archivo va directo del navegador al almacenamiento
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    headers: { authorization: `Bearer ${password}`, "content-type": "application/json" },
+    body: JSON.stringify({ filename: name, type: file.type, size: file.size })
   });
-  return res.url;
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok || !d.uploadUrl) throw new Error(d.error || "No se pudo preparar la subida.");
+  await putWithProgress(d.uploadUrl, file, { set: { "content-type": d.contentType || file.type } }, onProgress);
+  return d.url;
+}
+
+// Achica el video en el navegador antes de subirlo (máx. 1280 px de lado largo, H.264).
+// Si el navegador no puede, o no mejora el tamaño, se sube el original.
+async function compressVideo(file, onProgress) {
+  try {
+    if (typeof VideoEncoder === "undefined" || !file.type.startsWith("video/")) return file;
+    const mb = await import(MEDIABUNNY);
+    const input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
+    const track = await input.getPrimaryVideoTrack();
+    if (!track) return file;
+    const long = Math.max(track.displayWidth, track.displayHeight);
+    if (file.size < 12 * 1024 * 1024 && long <= 1280) return file; // ya es liviano
+    const video = { codec: "avc", quality: mb.QUALITY_MEDIUM };
+    if (long > 1280) {
+      if (track.displayWidth >= track.displayHeight) video.width = 1280; else video.height = 1280;
+    }
+    const output = new mb.Output({ format: new mb.Mp4OutputFormat(), target: new mb.BufferTarget() });
+    const conv = await mb.Conversion.init({ input, output, video, audio: { codec: "aac" } });
+    // si el navegador no puede codificar el video o el audio, se descartaría una pista: mejor subir el original
+    if (!conv.isValid || conv.discardedTracks.length) return file;
+    conv.onProgress = (p) => onProgress(p * 100);
+    await conv.execute();
+    const blob = new Blob([output.target.buffer], { type: "video/mp4" });
+    if (!blob.size || blob.size >= file.size * 0.95) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".mp4", { type: "video/mp4" });
+  } catch (e) {
+    console.warn("No se pudo comprimir, se sube el original:", e);
+    return file;
+  }
 }
 
 // Sube video + portada y muestra el progreso sobre la tarjeta
@@ -332,8 +369,9 @@ async function uploadVideo(file, card) {
     show(0, "Preparando…");
     const poster = await makePoster(file);
     const base = safeName(file.name.replace(/\.[^.]+$/, ""));
-    const ext = (file.name.match(/\.[a-z0-9]+$/i) || [".mp4"])[0].toLowerCase();
-    const videoUrl = await uploadFile(file, base + ext, (p) => show(p * 0.95));
+    const small = await compressVideo(file, (p) => show(p * 0.4, `Optimizando video… ${Math.round(p)}%`));
+    const ext = (small.name.match(/\.[a-z0-9]+$/i) || [".mp4"])[0].toLowerCase();
+    const videoUrl = await uploadFile(small, base + ext, (p) => show(40 + p * 0.55));
     sessionUploads.add(videoUrl);
     let posterUrl = "";
     if (poster) {
